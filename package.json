@@ -1,0 +1,10 @@
+{
+  "name": "inventario-perezosas",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "start": "node backend/src/scripts/init-db.js && node backend/src/index.js",
+    "init-db": "node backend/src/scripts/init-db.js"
+  }
+}

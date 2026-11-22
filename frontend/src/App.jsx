@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   LayoutDashboard, Package, Boxes, ClipboardList, Factory,
-  ShoppingCart, ListChecks, History, Palette, UserRound, LogOut
+  ShoppingCart, ListChecks, History, Palette, UserRound, LogOut, Radio
 } from 'lucide-react';
 import { api } from './api.js';
 import Dashboard from './pages/Dashboard.jsx';
@@ -25,7 +25,7 @@ const NAV = [
   { id: 'movimientos', label: 'Movimientos', icon: History }
 ];
 
-const TEMAS = ['emerald', 'forest', 'light', 'dark', 'sunset', 'nord', 'caramellatte'];
+const TEMAS = ['dark', 'emerald', 'forest', 'light', 'sunset', 'nord', 'caramellatte'];
 
 export default function App() {
   const [page, setPage] = useState('dashboard');
@@ -36,7 +36,7 @@ export default function App() {
   const [autenticando, setAutenticando] = useState(true);
   const [toast, setToast] = useState(null);
   const [usuario, setUsuario] = useState(null);
-  const [tema, setTema] = useState(() => localStorage.getItem('inv_tema') || 'emerald');
+  const [tema, setTema] = useState(() => localStorage.getItem('inv_tema') || 'dark');
 
   const refresh = useCallback(async () => {
     const [p, i, r] = await Promise.all([
@@ -92,11 +92,12 @@ export default function App() {
   const titulo = NAV.find((n) => n.id === page)?.label || 'Resumen';
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="flex shrink-0 flex-col border-b border-base-200 bg-base-100 p-4 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:border-b-0 lg:border-r lg:p-5">
+    <div className="app-shell flex min-h-screen">
+      <aside className="app-sidebar flex shrink-0 flex-col border-b border-primary/10 bg-base-100/80 p-4 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:border-b-0 lg:border-r lg:p-5">
         <div className="flex items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-primary to-secondary text-lg font-black text-primary-content shadow-lg">IP</div>
           <div>
+            <div className="section-kicker">Panel de control</div>
             <div className="text-base font-extrabold leading-tight">Inventario</div>
             <div className="text-xs text-base-content/50">Perezosas y más</div>
           </div>
@@ -108,7 +109,7 @@ export default function App() {
             return (
               <button
                 key={item.id}
-                className={`btn btn-ghost btn-sm justify-start gap-3 lg:btn-md lg:w-full ${page === item.id ? 'btn-active bg-primary/15 text-primary' : ''}`}
+                className={`btn btn-ghost btn-sm justify-start gap-3 lg:btn-md lg:w-full ${page === item.id ? 'nav-active text-primary' : ''}`}
                 onClick={() => setPage(item.id)}
               >
                 <Icon size={18} strokeWidth={2.2} />
@@ -135,10 +136,13 @@ export default function App() {
       </aside>
 
       <main className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-base-200 bg-base-100/85 px-4 py-4 backdrop-blur lg:px-8">
+        <header className="app-header sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-primary/10 px-4 py-4 backdrop-blur-xl lg:px-8">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-extrabold tracking-tight lg:text-2xl">{titulo}</h1>
-            <span className="badge badge-outline badge-sm hidden sm:inline-flex">Control de mercadería</span>
+            <div>
+              <div className="section-kicker">Módulo activo</div>
+              <h1 className="text-xl font-extrabold tracking-tight lg:text-2xl">{titulo}</h1>
+            </div>
+            <span className="badge badge-outline badge-sm hidden gap-1 sm:inline-flex"><Radio size={13} /> Control de mercadería</span>
           </div>
           <div className="flex items-center gap-2">
             <Palette size={16} className="opacity-50" />

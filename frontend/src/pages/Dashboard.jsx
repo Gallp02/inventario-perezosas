@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, CircleAlert, Package, Boxes, ShoppingCart, ListChecks, TrendingUp, LogIn } from 'lucide-react';
+import { ArrowRight, CircleAlert, Package, Boxes, ShoppingCart, ListChecks, TrendingUp, LogIn, Sparkles, Activity } from 'lucide-react';
 import { api, money, num, fecha } from '../api.js';
 
 const tipoNombre = {
@@ -32,6 +32,34 @@ export default function Dashboard({ refresh, notify, ir }) {
 
   return (
     <>
+      <div className="auth-panel relative overflow-hidden rounded-3xl p-6 sm:p-8">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+        <div className="relative flex flex-wrap items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="live-dot" />
+              <span className="section-kicker">Resumen operativo</span>
+            </div>
+            <h2 className="text-2xl font-black tracking-tight sm:text-3xl">Todo listo para operar</h2>
+            <p className="max-w-xl text-sm leading-relaxed opacity-60">
+              {alertas ? `${alertas} alertas de stock requieren atención.` : 'Stock en orden y sin alertas pendientes.'} Registra ventas y sigue cada pedido desde un solo lugar.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <div className="auth-feature min-w-28 rounded-2xl px-5 py-4 text-center">
+              <Activity size={18} className="mx-auto mb-2 text-primary" />
+              <div className="text-2xl font-black">{data.ventasHoy.cantidad}</div>
+              <div className="text-[10px] uppercase tracking-widest opacity-50">Ventas hoy</div>
+            </div>
+            <div className="auth-feature min-w-28 rounded-2xl px-5 py-4 text-center">
+              <Sparkles size={18} className="mx-auto mb-2 text-secondary" />
+              <div className="text-2xl font-black">{alertas}</div>
+              <div className="text-[10px] uppercase tracking-widest opacity-50">Alertas</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-2">
         <button className="btn btn-primary btn-sm" onClick={() => ir('ventas')}><ShoppingCart size={16} /> Nueva venta</button>
         <button className="btn btn-outline btn-sm" onClick={() => ir('pedidos')}><ListChecks size={16} /> Ver pedidos</button>

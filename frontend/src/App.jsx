@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   LayoutDashboard, Package, Boxes, ClipboardList, Factory,
   ShoppingCart, ListChecks, History, Palette, UserRound, LogOut, Radio, UsersRound,
-  LayoutGrid, ChevronDown, X
+  Menu, X
 } from 'lucide-react';
 import { api } from './api.js';
 import Dashboard from './pages/Dashboard.jsx';
@@ -41,7 +41,10 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [usuario, setUsuario] = useState(null);
   const [tema, setTema] = useState(() => localStorage.getItem('inv_tema') || 'dark');
-  const [menuModulos, setMenuModulos] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(() => {
+    const guardado = localStorage.getItem('inv_menu_abierto');
+    return guardado !== null ? guardado === '1' : window.innerWidth >= 1024;
+  });
 
   const refresh = useCallback(async () => {
     const [p, i, r, c] = await Promise.all([
@@ -80,20 +83,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!menuModulos) return;
-    const cerrarAlHacerClic = (event) => {
-      if (!event.target.closest('[data-menu-modulos]')) setMenuModulos(false);
-    };
-    const cerrarConEscape = (event) => {
-      if (event.key === 'Escape') setMenuModulos(false);
-    };
-    document.addEventListener('click', cerrarAlHacerClic);
-    document.addEventListener('keydown', cerrarConEscape);
-    return () => {
-      document.removeEventListener('click', cerrarAlHacerClic);
-      document.removeEventListener('keydown', cerrarConEscape);
-    };
-  }, [menuModulos]);
+    localStorage.setItem('inv_menu_abierto', menuAbierto ? '1' : '0');
+  }, [menuAbierto]);
 
   useEffect(() => {
     if (!usuario) return;
@@ -116,47 +107,68 @@ export default function App() {
 
   return (
     <div className="app-shell flex min-h-screen flex-col lg:flex-row">
-      <aside className="app-sidebar flex w-full shrink-0 flex-col border-b border-primary/10 bg-base-100/80 p-4 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:border-b-0 lg:border-r lg:px-8 lg:py-5">
-        <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-primary to-secondary text-lg font-black text-primary-content shadow-lg">IP</div>
-          <div>
-            <div className="section-kicker">Panel de control</div>
-            <div className="text-base font-extrabold leading-tight">Inventario</div>
-            <div className="text-xs text-base-content/50">Perezosas y más</div>
+      <aside className={`app-sidebar flex w-full shrink-0 flex-col border-b border-primary/10 bg-base-100/80 p-4 transition-[width] duration-200 lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:py-5 ${menuAbierto ? 'lg:w-64 lg:px-8' : 'lg:w-[5.5rem] lg:px-3'}`}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-secondary text-lg font-black text-primary-content shadow-lg">IP</div>
+            {menuAbierto && (
+              <div className="min-w-0">
+                <div className="section-kicker">Panel de control</div>
+                <div className="text-base font-extrabold leading-tight">Inventario</div>
+                <div className="text-xs text-base-content/50">Perezosas y más</div>
+              </div>
+            )}
           </div>
+          <button
+            className="btn btn-ghost btn-sm btn-square shrink-0"
+            onClick={() => setMenuAbierto((abierto) => !abierto)}
+            aria-label={menuAbierto ? 'Contraer menú de módulos' : 'Expandir menú de módulos'}
+            title={menuAbierto ? 'Contraer menú' : 'Expandir menú'}
+          >
+            {menuAbierto ? <X size={17} /> : <Menu size={17} />}
+          </button>
         </div>
 
-        <nav className="mt-4 flex gap-1.5 overflow-x-auto pb-1 lg:mt-8 lg:flex-col lg:overflow-visible lg:pb-0">
+        <nav className={`mt-4 gap-1.5 lg:mt-8 ${menuAbierto ? 'flex overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0' : 'hidden lg:flex lg:flex-col'}`}>
           {NAV.map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
                 aria-current={page === item.id ? 'page' : undefined}
-                className={`btn btn-ghost btn-sm shrink-0 justify-start gap-2 whitespace-nowrap lg:btn-md lg:w-full ${page === item.id ? 'nav-active text-primary' : ''}`}
+                title={menuAbierto ? undefined : item.label}
+                className={`btn btn-ghost ${menuAbierto ? 'btn-sm shrink-0 justify-start gap-2 whitespace-nowrap lg:btn-md lg:w-full' : 'btn-md w-full justify-center'} ${page === item.id ? 'nav-active text-primary' : ''}`}
                 onClick={() => setPage(item.id)}
               >
                 <Icon size={18} strokeWidth={2.2} />
-                {item.label}
+                {menuAbierto && <span>{item.label}</span>}
               </button>
             );
           })}
         </nav>
 
-        <div className="mt-auto hidden border-t border-base-200 pt-4 lg:block">
-          <div className="label py-1">
-            <span className="label-text text-xs font-semibold opacity-60">Sesión activa</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="input input-bordered input-sm flex flex-1 items-center gap-2">
-              <UserRound size={15} className="opacity-50" />
-              <span className="grow truncate">{usuario}</span>
+        {menuAbierto ? (
+          <div className="mt-auto hidden border-t border-base-200 pt-4 lg:block">
+            <div className="label py-1">
+              <span className="label-text text-xs font-semibold opacity-60">Sesión activa</span>
             </div>
-            <button className="btn btn-outline btn-sm btn-square" onClick={salir} title="Cerrar sesión">
-              <LogOut size={15} />
+            <div className="flex items-center gap-2">
+              <div className="input input-bordered input-sm flex flex-1 items-center gap-2">
+                <UserRound size={15} className="opacity-50" />
+                <span className="grow truncate">{usuario}</span>
+              </div>
+              <button className="btn btn-outline btn-sm btn-square" onClick={salir} title="Cerrar sesión">
+                <LogOut size={15} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-auto hidden pt-4 lg:block">
+            <button className="btn btn-ghost btn-square w-full" onClick={salir} title="Cerrar sesión">
+              <LogOut size={16} />
             </button>
           </div>
-        </div>
+        )}
       </aside>
 
       <main className="min-w-0 flex-1">
@@ -169,17 +181,7 @@ export default function App() {
                 <span className="badge badge-outline badge-sm hidden gap-1.5 self-end sm:inline-flex"><Radio size={13} /> Control de mercadería</span>
               </div>
             </div>
-            <div className="relative flex shrink-0 items-center gap-2" data-menu-modulos>
-              <button
-                className="btn btn-outline btn-sm gap-2"
-                aria-expanded={menuModulos}
-                onClick={() => setMenuModulos((abierto) => !abierto)}
-              >
-                <LayoutGrid size={15} />
-                <span className="hidden sm:inline">Módulos</span>
-                <ChevronDown size={14} className={`transition-transform ${menuModulos ? 'rotate-180' : ''}`} />
-              </button>
-              <div className="hidden h-6 w-px bg-base-300/60 sm:block" />
+            <div className="flex shrink-0 items-center gap-2">
               <Palette size={16} className="shrink-0 opacity-50" />
               <select
                 className="select select-bordered select-sm w-36 capitalize"
@@ -192,35 +194,6 @@ export default function App() {
               <button className="btn btn-ghost btn-sm btn-square lg:hidden" onClick={salir} title="Cerrar sesión">
                 <LogOut size={16} />
               </button>
-
-              {menuModulos && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-primary/20 bg-base-100/95 p-3 shadow-2xl backdrop-blur-xl">
-                  <div className="mb-2 flex items-center justify-between px-1">
-                    <span className="section-kicker">Lista de módulos</span>
-                    <button className="btn btn-ghost btn-xs btn-circle" onClick={() => setMenuModulos(false)} aria-label="Cerrar lista de módulos">
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <div className="grid gap-1 sm:grid-cols-2">
-                    {NAV.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <button
-                          key={item.id}
-                          className={`btn btn-ghost btn-sm justify-start gap-2.5 text-sm lg:btn-md ${page === item.id ? 'nav-active text-primary' : ''}`}
-                          onClick={() => {
-                            setPage(item.id);
-                            setMenuModulos(false);
-                          }}
-                        >
-                          <Icon size={16} strokeWidth={2.2} />
-                          <span className="truncate">{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </header>

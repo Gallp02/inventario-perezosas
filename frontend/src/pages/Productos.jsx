@@ -51,6 +51,8 @@ export default function Productos({ productos, refresh, notify, usuario }) {
   };
 
   const iniciarArrastre = (event, id) => {
+    const fila = event.currentTarget.closest('tr');
+    if (fila) event.dataTransfer.setDragImage(fila, 24, Math.min(fila.offsetHeight / 2, 40));
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', String(id));
     setArrastrando(id);
@@ -167,23 +169,27 @@ export default function Productos({ productos, refresh, notify, usuario }) {
                   return (
                     <tr
                       key={p.id}
-                      className={`${!p.activo ? 'opacity-50' : ''} ${arrastrando === p.id ? 'opacity-40' : ''} ${sobre === p.id && arrastrando !== p.id ? 'bg-primary/10 outline outline-1 outline-primary/40' : ''}`}
+                      className={`transition-all duration-150 ${!p.activo ? 'opacity-50' : ''} ${arrastrando === p.id ? 'relative z-10 scale-[1.008] bg-primary/10 shadow-[0_14px_32px_-16px_rgba(0,0,0,0.65)] outline outline-2 outline-primary/70' : ''} ${sobre === p.id && arrastrando !== p.id ? 'bg-secondary/10 outline outline-2 outline-dashed outline-secondary/60' : ''}`}
+                      onDragEnter={(event) => { event.preventDefault(); setSobre(p.id); }}
                       onDragOver={(event) => { event.preventDefault(); setSobre(p.id); }}
                       onDragLeave={() => setSobre((actual) => actual === p.id ? null : actual)}
                       onDrop={(event) => { event.preventDefault(); soltar(p.id); }}
                     >
                       <td>
-                        <button
-                          type="button"
-                          draggable
-                          className="btn btn-ghost btn-xs btn-square cursor-grab active:cursor-grabbing"
-                          title="Arrastra para cambiar el orden"
-                          aria-label={`Arrastrar ${p.nombre} para reordenar`}
-                          onDragStart={(event) => iniciarArrastre(event, p.id)}
-                          onDragEnd={() => { setArrastrando(null); setSobre(null); }}
-                        >
-                          <GripVertical size={16} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            draggable
+                            className="btn btn-ghost btn-xs btn-square group cursor-grab active:cursor-grabbing"
+                            title="Arrastra para cambiar el orden"
+                            aria-label={`Arrastrar ${p.nombre} para reordenar`}
+                            onDragStart={(event) => iniciarArrastre(event, p.id)}
+                            onDragEnd={() => { setArrastrando(null); setSobre(null); }}
+                          >
+                            <GripVertical size={17} className={`transition-opacity ${arrastrando === p.id ? 'text-primary opacity-100' : 'opacity-50 group-hover:opacity-100'}`} />
+                          </button>
+                          {arrastrando === p.id && <span className="badge badge-primary badge-sm animate-pulse whitespace-nowrap">Moviendo</span>}
+                        </div>
                       </td>
                       <td className="font-mono text-xs">{p.codigo}</td>
                       <td className="min-w-40">{campo(p, 'nombre', p.nombre)}</td>

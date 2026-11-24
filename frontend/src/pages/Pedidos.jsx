@@ -76,7 +76,7 @@ export default function Pedidos({ refresh, notify }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pedidos</h1>
+          <h2 className="text-lg font-extrabold tracking-tight">Pedidos</h2>
           <p className="text-sm opacity-60">Cada venta se convierte en un pedido listo para preparar y entregar.</p>
         </div>
         <div className="badge badge-primary badge-lg gap-2">
@@ -84,14 +84,14 @@ export default function Pedidos({ refresh, notify }) {
         </div>
       </div>
 
-      <div className="tabs tabs-bordered overflow-x-auto">
+      <div className="tabs tabs-border flex-nowrap overflow-x-auto">
         {TABS.map((tab) => {
           const Icono = tab.icono;
           const count = tab.clave === 'todos' ? resumen.total : (resumen[tab.clave] || 0);
           return (
             <button
               key={tab.clave}
-              className={`tab gap-2 whitespace-nowrap ${filtro === tab.clave ? 'tab-active text-primary' : ''}`}
+              className={`tab shrink-0 gap-2 whitespace-nowrap ${filtro === tab.clave ? 'tab-active text-primary' : ''}`}
               onClick={() => setFiltro(tab.clave)}
             >
               <Icono size={15} /> {tab.label}
@@ -189,7 +189,7 @@ export default function Pedidos({ refresh, notify }) {
             </div>
 
             <div className="mt-4 overflow-x-auto">
-              <table className="table table-sm">
+              <table className="table table-sm table-zebra">
                 <thead><tr><th>Producto</th><th className="text-right">Cant.</th><th className="text-right">Subtotal</th></tr></thead>
                 <tbody>
                   {detalle.items.map((item) => (

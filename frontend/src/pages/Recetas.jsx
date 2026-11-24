@@ -68,7 +68,7 @@ export default function Recetas({ productos, insumos, recetas, refresh, notify }
           <div className="py-10 text-center text-sm opacity-50">Selecciona un producto para ver o armar su receta</div>
         ) : (
           <>
-            <div className="mt-5 flex flex-wrap items-end gap-2">
+            <div className="mt-5 flex flex-wrap items-end gap-3">
               <label className="form-control w-64">
                 <span className="label-text text-xs font-semibold">Insumo</span>
                 <select className="select select-bordered select-sm" value={nuevoInsumo} onChange={(e) => setNuevoInsumo(e.target.value)}>
@@ -96,7 +96,7 @@ export default function Recetas({ productos, insumos, recetas, refresh, notify }
                         <td className="font-semibold">{insumo?.nombre || `Insumo ${item.insumo_id}`}</td>
                         <td className="opacity-70">{insumo?.unidad || '-'}</td>
                         <td className="text-right">
-                          <input className="input input-bordered input-xs w-20 text-right" type="number" step="0.01" min="0.01" value={item.cantidad}
+                          <input className="input input-bordered input-xs w-24 bg-transparent text-right font-mono text-xs" type="number" step="0.01" min="0.01" value={item.cantidad}
                             onChange={(e) => setItems(items.map((x) => x.insumo_id === item.insumo_id ? { ...x, cantidad: e.target.value } : x))} />
                         </td>
                         <td className="text-right font-mono">{num(insumo?.stock || 0, 2)}</td>

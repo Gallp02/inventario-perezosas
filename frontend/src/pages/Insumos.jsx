@@ -152,7 +152,7 @@ export default function Insumos({ insumos, refresh, notify, usuario }) {
                       </td>
                       <td className="text-right">
                         <input
-                          className="input input-bordered input-xs w-20 bg-transparent text-right text-xs"
+                          className="input input-bordered input-xs w-24 bg-transparent text-right font-mono text-xs"
                           key={`${i.id}-min-${i.stock_minimo}`}
                           type="number"
                           step="0.01"
@@ -188,7 +188,7 @@ export default function Insumos({ insumos, refresh, notify, usuario }) {
       {form && (
         <div className="modal modal-open">
           <form className="modal-box max-w-xl" onSubmit={guardar}>
-            <div className="modal-action -mt-2 mb-2 justify-between">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="text-lg font-bold">{form.id ? 'Editar insumo' : 'Nuevo insumo'}</h3>
               <button type="button" className="btn btn-ghost btn-sm btn-circle" onClick={() => setForm(null)}>✕</button>
             </div>
@@ -197,9 +197,9 @@ export default function Insumos({ insumos, refresh, notify, usuario }) {
               <label className="form-control"><span className="label-text text-xs font-semibold">Categoría</span><input className="input input-bordered input-sm" required placeholder="Telas, Armazones…" value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} /></label>
             </div>
             <label className="form-control mt-3"><span className="label-text text-xs font-semibold">Nombre</span><input className="input input-bordered input-sm" required value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} /></label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="form-control mt-3"><span className="label-text text-xs font-semibold">Unidad</span><input className="input input-bordered input-sm" required value={form.unidad} onChange={(e) => setForm({ ...form, unidad: e.target.value })} /></label>
-              <label className="form-control mt-3"><span className="label-text text-xs font-semibold">Costo unitario</span><input className="input input-bordered input-sm" type="number" step="0.01" min="0" value={form.costo_unitario} onChange={(e) => setForm({ ...form, costo_unitario: e.target.value })} /></label>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="form-control"><span className="label-text text-xs font-semibold">Unidad</span><input className="input input-bordered input-sm" required value={form.unidad} onChange={(e) => setForm({ ...form, unidad: e.target.value })} /></label>
+              <label className="form-control"><span className="label-text text-xs font-semibold">Costo unitario</span><input className="input input-bordered input-sm" type="number" step="0.01" min="0" value={form.costo_unitario} onChange={(e) => setForm({ ...form, costo_unitario: e.target.value })} /></label>
             </div>
             {!form.id && (
               <label className="form-control mt-3"><span className="label-text text-xs font-semibold">Stock inicial</span><input className="input input-bordered input-sm" type="number" step="0.01" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} /></label>

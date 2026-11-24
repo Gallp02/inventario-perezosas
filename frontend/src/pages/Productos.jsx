@@ -204,7 +204,7 @@ export default function Productos({ productos, refresh, notify, usuario }) {
       {form && (
         <div className="modal modal-open">
           <form className="modal-box max-w-xl" onSubmit={guardar}>
-            <div className="modal-action -mt-2 mb-2 justify-between">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="text-lg font-bold">{form.id ? 'Editar producto' : 'Nuevo producto'}</h3>
               <button type="button" className="btn btn-ghost btn-sm btn-circle" onClick={() => setForm(null)}>✕</button>
             </div>
@@ -214,9 +214,9 @@ export default function Productos({ productos, refresh, notify, usuario }) {
             </div>
             <label className="form-control mt-3"><span className="label-text text-xs font-semibold">Nombre</span><input className="input input-bordered input-sm" required value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} /></label>
             <label className="form-control mt-3"><span className="label-text text-xs font-semibold">Descripción</span><input className="input input-bordered input-sm" value={form.descripcion || ''} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} /></label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="form-control mt-3"><span className="label-text text-xs font-semibold">Precio de venta</span><input className="input input-bordered input-sm" required type="number" step="0.01" min="0" value={form.precio_venta} onChange={(e) => setForm({ ...form, precio_venta: e.target.value })} /></label>
-              <label className="form-control mt-3"><span className="label-text text-xs font-semibold">Stock mínimo (vacío = Indefinido)</span><input className="input input-bordered input-sm" type="number" step="1" min="-1" placeholder="Indefinido" value={Number(form.stock_minimo) === -1 ? '' : form.stock_minimo} onChange={(e) => setForm({ ...form, stock_minimo: e.target.value })} /></label>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="form-control"><span className="label-text text-xs font-semibold">Precio de venta</span><input className="input input-bordered input-sm" required type="number" step="0.01" min="0" value={form.precio_venta} onChange={(e) => setForm({ ...form, precio_venta: e.target.value })} /></label>
+              <label className="form-control"><span className="label-text text-xs font-semibold">Stock mínimo (vacío = Indefinido)</span><input className="input input-bordered input-sm" type="number" step="1" min="-1" placeholder="Indefinido" value={Number(form.stock_minimo) === -1 ? '' : form.stock_minimo} onChange={(e) => setForm({ ...form, stock_minimo: e.target.value })} /></label>
             </div>
             {!form.id && (
               <label className="form-control mt-3"><span className="label-text text-xs font-semibold">Stock inicial</span><input className="input input-bordered input-sm" type="number" step="1" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} /></label>

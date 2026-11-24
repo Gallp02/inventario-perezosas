@@ -97,8 +97,8 @@ export default function App() {
   const titulo = NAV.find((n) => n.id === page)?.label || 'Resumen';
 
   return (
-    <div className="app-shell flex min-h-screen">
-      <aside className="app-sidebar flex shrink-0 flex-col border-b border-primary/10 bg-base-100/80 p-4 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:border-b-0 lg:border-r lg:p-5">
+    <div className="app-shell flex min-h-screen flex-col lg:flex-row">
+      <aside className="app-sidebar flex w-full shrink-0 flex-col border-b border-primary/10 bg-base-100/80 p-4 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:border-b-0 lg:border-r lg:px-8 lg:py-5">
         <div className="flex items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-primary to-secondary text-lg font-black text-primary-content shadow-lg">IP</div>
           <div>
@@ -108,13 +108,14 @@ export default function App() {
           </div>
         </div>
 
-        <nav className="mt-4 flex flex-wrap gap-1 lg:mt-8 lg:flex-col">
+        <nav className="mt-4 flex gap-1.5 overflow-x-auto pb-1 lg:mt-8 lg:flex-col lg:overflow-visible lg:pb-0">
           {NAV.map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
-                className={`btn btn-ghost btn-sm justify-start gap-3 lg:btn-md lg:w-full ${page === item.id ? 'nav-active text-primary' : ''}`}
+                aria-current={page === item.id ? 'page' : undefined}
+                className={`btn btn-ghost btn-sm shrink-0 justify-start gap-2 whitespace-nowrap lg:btn-md lg:w-full ${page === item.id ? 'nav-active text-primary' : ''}`}
                 onClick={() => setPage(item.id)}
               >
                 <Icon size={18} strokeWidth={2.2} />
@@ -141,24 +142,29 @@ export default function App() {
       </aside>
 
       <main className="min-w-0 flex-1">
-        <header className="app-header sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-primary/10 px-4 py-4 backdrop-blur-xl lg:px-8">
-          <div className="flex items-center gap-3">
-            <div>
+        <header className="app-header sticky top-0 z-30 border-b border-primary/10 py-4 backdrop-blur-xl">
+          <div className="mx-auto flex w-full max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 lg:px-8">
+            <div className="min-w-0">
               <div className="section-kicker">Módulo activo</div>
-              <h1 className="text-xl font-extrabold tracking-tight lg:text-2xl">{titulo}</h1>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h1 className="text-xl font-extrabold tracking-tight lg:text-2xl">{titulo}</h1>
+                <span className="badge badge-outline badge-sm hidden gap-1.5 self-end sm:inline-flex"><Radio size={13} /> Control de mercadería</span>
+              </div>
             </div>
-            <span className="badge badge-outline badge-sm hidden gap-1 sm:inline-flex"><Radio size={13} /> Control de mercadería</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Palette size={16} className="opacity-50" />
-            <select
-              className="select select-bordered select-sm w-36 capitalize"
-              value={tema}
-              onChange={(e) => setTema(e.target.value)}
-              aria-label="Tema de color"
-            >
-              {TEMAS.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
+            <div className="flex shrink-0 items-center gap-2">
+              <Palette size={16} className="shrink-0 opacity-50" />
+              <select
+                className="select select-bordered select-sm w-36 capitalize"
+                value={tema}
+                onChange={(e) => setTema(e.target.value)}
+                aria-label="Tema de color"
+              >
+                {TEMAS.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <button className="btn btn-ghost btn-sm btn-square lg:hidden" onClick={salir} title="Cerrar sesión">
+                <LogOut size={16} />
+              </button>
+            </div>
           </div>
         </header>
 
@@ -167,7 +173,7 @@ export default function App() {
             <span className="loading loading-spinner loading-lg text-primary" />
           </div>
         ) : (
-          <div className="mx-auto max-w-[1600px] space-y-5 p-4 lg:p-8">
+          <div className="mx-auto max-w-[1440px] space-y-5 p-4 lg:p-8">
             {page === 'dashboard' && <Dashboard {...shared} ir={setPage} />}
             {page === 'productos' && <Productos {...shared} />}
             {page === 'insumos' && <Insumos {...shared} />}

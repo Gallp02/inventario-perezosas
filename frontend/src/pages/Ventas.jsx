@@ -168,7 +168,7 @@ export default function Ventas({ productos, clientes, refresh, notify, usuario }
             <div className="card-title flex items-center gap-2 text-base"><ShoppingCart size={18} className="text-primary" /> Registrar venta</div>
             <p className="text-sm opacity-60">Precio editable por item. El borrador se conserva al cambiar de sección.</p>
 
-            <div className="mt-4 flex flex-wrap items-end gap-2">
+            <div className="mt-4 flex flex-wrap items-end gap-3">
               <label className="form-control min-w-56 flex-1">
                 <span className="label-text text-xs font-semibold">Producto</span>
                 <select className="select select-bordered select-sm" value={productoId} onChange={(e) => seleccionarProducto(e.target.value)}>
@@ -299,7 +299,7 @@ export default function Ventas({ productos, clientes, refresh, notify, usuario }
       {pedido && (
         <div className="modal modal-open">
           <div className="modal-box max-w-xl">
-            <div className="modal-action -mt-2 mb-2 justify-between">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="text-lg font-bold">Pedido {pedido.codigo}</h3>
               <button className="btn btn-ghost btn-sm btn-circle" onClick={() => setPedido(null)}>✕</button>
             </div>

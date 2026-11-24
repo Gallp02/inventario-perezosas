@@ -34,7 +34,7 @@ export default function Login({ onOk }) {
       <div className="auth-orb auth-orb-b" />
 
       <div className="relative z-10 grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[1.05fr_.95fr]">
-        <section className="hidden space-y-8 px-4 lg:block">
+        <section className="hidden space-y-8 lg:block">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <span className="live-dot" />
@@ -52,18 +52,18 @@ export default function Login({ onOk }) {
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <div className="auth-feature space-y-2 rounded-2xl p-4">
-              <Boxes size={20} className="text-primary" />
+            <div className="auth-feature space-y-2 rounded-2xl p-4 text-center leading-snug">
+              <Boxes size={20} className="mx-auto text-primary" />
               <div className="text-sm font-bold">Stock vivo</div>
               <div className="text-xs opacity-55">Productos e insumos</div>
             </div>
-            <div className="auth-feature space-y-2 rounded-2xl p-4">
-              <ListChecks size={20} className="text-secondary" />
+            <div className="auth-feature space-y-2 rounded-2xl p-4 text-center leading-snug">
+              <ListChecks size={20} className="mx-auto text-secondary" />
               <div className="text-sm font-bold">Pedidos</div>
               <div className="text-xs opacity-55">Preparación y entrega</div>
             </div>
-            <div className="auth-feature space-y-2 rounded-2xl p-4">
-              <History size={20} className="text-accent" />
+            <div className="auth-feature space-y-2 rounded-2xl p-4 text-center leading-snug">
+              <History size={20} className="mx-auto text-accent" />
               <div className="text-sm font-bold">Trazabilidad</div>
               <div className="text-xs opacity-55">Cada movimiento</div>
             </div>
@@ -74,7 +74,7 @@ export default function Login({ onOk }) {
               <span className="section-kicker">Estado de la plataforma</span>
               <span className="badge badge-success badge-sm gap-1"><Radio size={12} /> En línea</span>
             </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="grid grid-cols-3 gap-4 text-center leading-snug">
               <div className="rounded-xl bg-base-200/50 p-3">
                 <Cpu size={16} className="mx-auto mb-1 text-primary" />
                 <div className="text-lg font-black">API</div>
@@ -109,7 +109,7 @@ export default function Login({ onOk }) {
             <form className="space-y-4" onSubmit={entrar}>
               <label className="form-control">
                 <span className="label-text text-xs font-semibold tracking-wide">Usuario</span>
-                <div className="relative mt-1">
+                <div className="relative">
                   <UserRound size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary/70" />
                   <input
                     className="input input-bordered w-full pl-10"
@@ -123,7 +123,7 @@ export default function Login({ onOk }) {
 
               <label className="form-control">
                 <span className="label-text text-xs font-semibold tracking-wide">Contraseña</span>
-                <div className="relative mt-1">
+                <div className="relative">
                   <LockKeyhole size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-primary/70" />
                   <input
                     className="input input-bordered w-full pl-10 pr-12"

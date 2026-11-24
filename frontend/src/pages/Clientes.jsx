@@ -91,7 +91,7 @@ export default function Clientes({ clientes, refresh, notify }) {
                     <td className="text-xs opacity-70">{c.telefono || '-'}</td>
                     <td className="text-xs opacity-60">{c.direccion || '-'}</td>
                     <td className="text-right">
-                      <div className="flex justify-end gap-1">
+                      <div className="flex flex-wrap justify-end gap-1">
                         <button className="btn btn-ghost btn-xs" onClick={() => setForm({ ...c })}><Pencil size={14} /> Editar</button>
                         <button className="btn btn-ghost btn-xs" onClick={() => cambiarEstado(c)}>
                           {c.activo ? <Archive size={14} /> : <RotateCcw size={14} />}
@@ -111,7 +111,7 @@ export default function Clientes({ clientes, refresh, notify }) {
       {form && (
         <div className="modal modal-open">
           <form className="modal-box max-w-2xl" onSubmit={guardar}>
-            <div className="modal-action -mt-2 mb-2 justify-between">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="text-lg font-bold">{form.id ? 'Editar cliente' : 'Nuevo cliente'}</h3>
               <button type="button" className="btn btn-ghost btn-sm btn-circle" onClick={() => setForm(null)}>✕</button>
             </div>

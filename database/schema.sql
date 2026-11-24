@@ -152,6 +152,3 @@ INSERT IGNORE INTO recetas (producto_id, insumo_id, cantidad)
 SELECT p.id, i.id, 1.00 FROM productos p CROSS JOIN insumos i WHERE p.codigo = 'SOM-01' AND i.codigo = 'ARM-SOM';
 INSERT IGNORE INTO recetas (producto_id, insumo_id, cantidad)
 SELECT p.id, i.id, 4.00 FROM productos p CROSS JOIN insumos i WHERE p.codigo = 'SOM-01' AND i.codigo = 'TELA-SOM';
-
-UPDATE productos SET orden = id WHERE orden = 0;
-UPDATE ventas SET anio_pedido = YEAR(fecha) WHERE anio_pedido IS NULL;

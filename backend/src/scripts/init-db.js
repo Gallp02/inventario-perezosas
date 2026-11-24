@@ -12,6 +12,18 @@ const ignorables = [1050, 1060, 1061, 1091];
 const migraciones = [
   'ALTER TABLE productos ADD COLUMN orden INT NOT NULL DEFAULT 0',
   'UPDATE productos SET orden = id WHERE orden = 0',
+  'ALTER TABLE insumos ADD COLUMN orden INT NOT NULL DEFAULT 0',
+  'UPDATE insumos SET orden = id WHERE orden = 0',
+  'ALTER TABLE clientes ADD COLUMN dni VARCHAR(20) NULL AFTER nombre',
+  'ALTER TABLE clientes ADD COLUMN empresa VARCHAR(150) NULL AFTER dni',
+  "UPDATE clientes SET dni = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(dni, '.', ''), '-', ''), ' ', ''), CHAR(9), ''), CHAR(160), '') WHERE dni IS NOT NULL",
+  "UPDATE clientes SET dni = NULL WHERE dni = ''",
+  `UPDATE clientes c
+   JOIN (SELECT dni, MIN(id) AS id_min FROM clientes WHERE dni IS NOT NULL GROUP BY dni HAVING COUNT(*) > 1) d
+     ON c.dni = d.dni AND c.id > d.id_min
+   SET c.dni = NULL`,
+  'ALTER TABLE clientes DROP INDEX idx_clientes_dni',
+  'ALTER TABLE clientes ADD UNIQUE KEY uq_clientes_dni (dni)',
   'ALTER TABLE ventas ADD COLUMN cliente_id INT NULL',
   'ALTER TABLE ventas ADD COLUMN anio_pedido INT NULL',
   'UPDATE ventas SET anio_pedido = YEAR(fecha) WHERE anio_pedido IS NULL',

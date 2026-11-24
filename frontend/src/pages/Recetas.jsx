@@ -9,7 +9,7 @@ export default function Recetas({ productos, insumos, recetas, refresh, notify }
   const [nuevaCantidad, setNuevaCantidad] = useState('1');
 
   useEffect(() => {
-    if (!productoId && productos.length) setProductoId(String(productos[0].id));
+    if (!productoId && productos.length) setProductoId(String((productos.find((p) => p.activo) || productos[0]).id));
   }, [productos, productoId]);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function Recetas({ productos, insumos, recetas, refresh, notify }
           <span className="label-text text-xs font-semibold">Producto terminado</span>
           <select className="select select-bordered select-sm" value={productoId} onChange={(e) => setProductoId(e.target.value)}>
             <option value="">Seleccionar…</option>
-            {productos.map((p) => <option key={p.id} value={p.id}>{p.codigo} · {p.nombre}</option>)}
+            {productos.filter((p) => p.activo).map((p) => <option key={p.id} value={p.id}>{p.codigo} · {p.nombre}</option>)}
           </select>
         </label>
 
@@ -73,7 +73,7 @@ export default function Recetas({ productos, insumos, recetas, refresh, notify }
                 <span className="label-text text-xs font-semibold">Insumo</span>
                 <select className="select select-bordered select-sm" value={nuevoInsumo} onChange={(e) => setNuevoInsumo(e.target.value)}>
                   <option value="">Seleccionar insumo…</option>
-                  {insumos.filter((i) => !items.some((x) => x.insumo_id === i.id)).map((i) => (
+                  {insumos.filter((i) => i.activo && !items.some((x) => x.insumo_id === i.id)).map((i) => (
                     <option key={i.id} value={i.id}>{i.codigo} · {i.nombre}</option>
                   ))}
                 </select>

@@ -8,7 +8,7 @@ export default function Fabricar({ productos, insumos, recetas, refresh, notify,
   const [procesando, setProcesando] = useState(false);
 
   useEffect(() => {
-    if (!productoId && productos.length) setProductoId(String(productos[0].id));
+    if (!productoId && productos.length) setProductoId(String((productos.find((p) => p.activo) || productos[0]).id));
   }, [productos, productoId]);
 
   const producto = productos.find((p) => String(p.id) === String(productoId));

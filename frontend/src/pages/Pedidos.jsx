@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ClipboardList, ChefHat, PackageCheck, Truck, Eye, Search, Clock3, ClipboardCheck } from 'lucide-react';
+import { ClipboardList, ChefHat, PackageCheck, Truck, Eye, Search, Clock3, ClipboardCheck, RotateCcw } from 'lucide-react';
 import { api, money, fecha } from '../api.js';
 
 const ESTADOS = {
@@ -13,6 +13,12 @@ const SIGUIENTE = {
   pendiente: 'en_preparacion',
   en_preparacion: 'listo',
   listo: 'entregado'
+};
+
+const ANTERIOR = {
+  en_preparacion: 'pendiente',
+  listo: 'en_preparacion',
+  entregado: 'listo'
 };
 
 const ACCIONES = {
@@ -159,6 +165,15 @@ export default function Pedidos({ refresh, notify }) {
                     <button className="btn btn-ghost btn-sm gap-1" onClick={() => setDetalle(pedido)}>
                       <Eye size={15} /> Detalle
                     </button>
+                    {ANTERIOR[pedido.estado_pedido] && (
+                      <button
+                        className="btn btn-ghost btn-sm gap-1"
+                        title="Volver un estado"
+                        onClick={() => cambiarEstado(pedido, ANTERIOR[pedido.estado_pedido])}
+                      >
+                        <RotateCcw size={14} /> Volver
+                      </button>
+                    )}
                     {accion && (
                       <button
                         className={`btn btn-sm flex-1 gap-1 ${accion.btn}`}
@@ -210,6 +225,14 @@ export default function Pedidos({ refresh, notify }) {
             {detalle.notas && <p className="mt-2 rounded-box bg-base-200 p-3 text-sm">Nota: {detalle.notas}</p>}
 
             <div className="modal-action">
+              {ANTERIOR[detalle.estado_pedido] && (
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => cambiarEstado(detalle, ANTERIOR[detalle.estado_pedido])}
+                >
+                  <RotateCcw size={15} /> Volver
+                </button>
+              )}
               {ACCIONES[detalle.estado_pedido] && (
                 <button
                   className={`btn ${ACCIONES[detalle.estado_pedido].btn}`}

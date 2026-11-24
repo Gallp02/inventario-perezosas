@@ -20,6 +20,11 @@ function minimo(value, field) {
   return Math.round(n);
 }
 
+function minimoDecimal(value, field) {
+  if (value === 'indefinido' || value === 'Indefinido' || value === -1 || value === '-1') return -1;
+  return decimal(value, field);
+}
+
 function text(value, field, required = true) {
   const v = String(value ?? '').trim();
   if (required && !v) fail(400, `${field} es obligatorio`);
@@ -125,10 +130,29 @@ router.delete('/productos/:id', async (req, res, next) => {
 
 router.get('/insumos', async (req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM insumos ORDER BY activo DESC, categoria, nombre');
+    const [rows] = await pool.query('SELECT * FROM insumos ORDER BY orden ASC, activo DESC, categoria, nombre');
     res.json(rows);
   } catch (error) {
     next(error);
+  }
+});
+
+router.put('/insumos/reordenar', async (req, res, next) => {
+  const conn = await pool.getConnection();
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number) : [];
+    if (!ids.length || ids.some((id) => !Number.isInteger(id) || id <= 0)) fail(400, 'Orden inválido');
+    await conn.beginTransaction();
+    for (let index = 0; index < ids.length; index += 1) {
+      await conn.query('UPDATE insumos SET orden = ? WHERE id = ?', [index + 1, ids[index]]);
+    }
+    await conn.commit();
+    res.json({ mensaje: 'Orden actualizado' });
+  } catch (error) {
+    await conn.rollback();
+    next(error);
+  } finally {
+    conn.release();
   }
 });
 
@@ -141,12 +165,14 @@ router.post('/insumos', async (req, res, next) => {
       text(b.categoria, 'Categoría'),
       text(b.unidad || 'pza', 'Unidad'),
       decimal(b.stock, 'Stock'),
-      minimo(b.stock_minimo, 'Stock mínimo'),
+      minimoDecimal(b.stock_minimo, 'Stock mínimo'),
       decimal(b.costo_unitario, 'Costo unitario')
     ];
+    const [[siguiente]] = await pool.query('SELECT COALESCE(MAX(orden), 0) + 1 AS orden FROM insumos');
+    values.push(siguiente.orden);
     const [result] = await pool.query(
-      `INSERT INTO insumos (codigo, nombre, categoria, unidad, stock, stock_minimo, costo_unitario)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO insumos (codigo, nombre, categoria, unidad, stock, stock_minimo, costo_unitario, orden)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       values
     );
     const [rows] = await pool.query('SELECT * FROM insumos WHERE id = ?', [result.insertId]);
@@ -169,7 +195,7 @@ router.put('/insumos/:id', async (req, res, next) => {
       text(b.nombre ?? i.nombre, 'Nombre'),
       text(b.categoria ?? i.categoria, 'Categoría'),
       text(b.unidad ?? i.unidad, 'Unidad'),
-      minimo(b.stock_minimo ?? i.stock_minimo, 'Stock mínimo'),
+      minimoDecimal(b.stock_minimo ?? i.stock_minimo, 'Stock mínimo'),
       decimal(b.costo_unitario ?? i.costo_unitario, 'Costo unitario'),
       b.activo === undefined ? i.activo : (b.activo ? 1 : 0),
       id

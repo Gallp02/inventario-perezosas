@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Pencil, Plus, Search, ArrowDownToLine, SlidersHorizontal,
-  Minus, Archive, RotateCcw
+  Minus, Archive, RotateCcw, GripVertical
 } from 'lucide-react';
 import { api, money, num, estadoStock } from '../api.js';
 
@@ -13,6 +13,8 @@ export default function Insumos({ insumos, refresh, notify, usuario }) {
   const [ajuste, setAjuste] = useState(null);
   const [buscar, setBuscar] = useState('');
   const [verInactivos, setVerInactivos] = useState(false);
+  const [arrastrando, setArrastrando] = useState(null);
+  const [sobre, setSobre] = useState(null);
 
   const guardar = async (event) => {
     event.preventDefault();
@@ -44,6 +46,34 @@ export default function Insumos({ insumos, refresh, notify, usuario }) {
     } catch (error) {
       notify(error.message, 'error');
       refresh();
+    }
+  };
+
+  const iniciarArrastre = (event, id) => {
+    const fila = event.currentTarget.closest('tr');
+    if (fila) event.dataTransfer.setDragImage(fila, 24, Math.min(fila.offsetHeight / 2, 40));
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(id));
+    setArrastrando(id);
+  };
+
+  const soltar = async (destinoId) => {
+    const origenId = Number(arrastrando);
+    const destino = Number(destinoId);
+    setArrastrando(null);
+    setSobre(null);
+    if (!origenId || origenId === destino) return;
+    const ids = insumos.map((i) => i.id);
+    const desde = ids.indexOf(origenId);
+    const hasta = ids.indexOf(destino);
+    if (desde < 0 || hasta < 0) return;
+    const [movido] = ids.splice(desde, 1);
+    ids.splice(hasta, 0, movido);
+    try {
+      await api.put('/catalogos/insumos/reordenar', { ids });
+      refresh();
+    } catch (error) {
+      notify(error.message, 'error');
     }
   };
 
@@ -102,7 +132,7 @@ export default function Insumos({ insumos, refresh, notify, usuario }) {
           <div className="card-title flex flex-wrap items-center justify-between gap-3 text-base">
             <div>
               <span>Insumos (armazones, telas y otros)</span>
-              <div className="text-xs font-normal opacity-60">Edita el nombre en la tabla y ajusta stock en + o −.</div>
+              <div className="text-xs font-normal opacity-60">Edita el nombre en la tabla, ajusta stock en + o − y arrastra el tirador para cambiar el orden.</div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <label className="input input-bordered input-sm flex w-52 items-center gap-2">
@@ -121,7 +151,7 @@ export default function Insumos({ insumos, refresh, notify, usuario }) {
             <table className="table table-sm table-zebra">
               <thead>
                 <tr>
-                  <th>Código</th><th>Insumo</th><th>Categoría</th><th className="text-right">Costo</th>
+                  <th>Orden</th><th>Código</th><th>Insumo</th><th>Categoría</th><th className="text-right">Costo</th>
                   <th className="text-right">Stock</th><th className="text-right">Mín.</th><th>Estado</th><th className="text-right">Acciones</th>
                 </tr>
               </thead>
@@ -129,7 +159,30 @@ export default function Insumos({ insumos, refresh, notify, usuario }) {
                 {filtrados.map((i) => {
                   const estado = estadoStock(i);
                   return (
-                    <tr key={i.id} className={!i.activo ? 'opacity-50' : ''}>
+                    <tr
+                      key={i.id}
+                      className={`transition-all duration-150 ${!i.activo ? 'opacity-50' : ''} ${arrastrando === i.id ? 'relative z-10 scale-[1.008] bg-primary/10 [&>td]:bg-primary/10 shadow-[0_14px_32px_-16px_rgba(0,0,0,0.65)] outline outline-2 outline-primary/70' : ''} ${sobre === i.id && arrastrando !== i.id ? 'bg-secondary/10 [&>td]:bg-secondary/10 outline outline-2 outline-dashed outline-secondary/60' : ''}`}
+                      onDragEnter={(event) => { event.preventDefault(); setSobre(i.id); }}
+                      onDragOver={(event) => { event.preventDefault(); setSobre(i.id); }}
+                      onDragLeave={() => setSobre((actual) => actual === i.id ? null : actual)}
+                      onDrop={(event) => { event.preventDefault(); soltar(i.id); }}
+                    >
+                      <td>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            draggable
+                            className="btn btn-ghost btn-xs btn-square group cursor-grab active:cursor-grabbing"
+                            title="Arrastra para cambiar el orden"
+                            aria-label={`Arrastrar ${i.nombre} para reordenar`}
+                            onDragStart={(event) => iniciarArrastre(event, i.id)}
+                            onDragEnd={() => { setArrastrando(null); setSobre(null); }}
+                          >
+                            <GripVertical size={18} className={`shrink-0 transition-colors ${arrastrando === i.id ? 'text-primary' : 'text-base-content/75 group-hover:text-primary'}`} />
+                          </button>
+                          {arrastrando === i.id && <span className="badge badge-primary badge-sm animate-pulse whitespace-nowrap">Moviendo</span>}
+                        </div>
+                      </td>
                       <td className="font-mono text-xs">{i.codigo}</td>
                       <td className="min-w-40">
                         <input
@@ -178,7 +231,7 @@ export default function Insumos({ insumos, refresh, notify, usuario }) {
                     </tr>
                   );
                 })}
-                {!filtrados.length && <tr><td colSpan="8" className="py-8 text-center text-sm opacity-50">No hay insumos con ese filtro</td></tr>}
+                {!filtrados.length && <tr><td colSpan="9" className="py-8 text-center text-sm opacity-50">No hay insumos con ese filtro</td></tr>}
               </tbody>
             </table>
           </div>

@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS productos (
   stock INT NOT NULL DEFAULT 0,
   stock_minimo INT NOT NULL DEFAULT 5,
   activo TINYINT(1) NOT NULL DEFAULT 1,
+  orden INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
@@ -39,9 +40,26 @@ CREATE TABLE IF NOT EXISTS recetas (
   CONSTRAINT fk_receta_insumo FOREIGN KEY (insumo_id) REFERENCES insumos(id)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS clientes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(150) NOT NULL,
+  distrito VARCHAR(100) DEFAULT NULL,
+  provincia VARCHAR(100) DEFAULT 'Lima',
+  telefono VARCHAR(40) DEFAULT NULL,
+  direccion VARCHAR(255) DEFAULT NULL,
+  notas TEXT,
+  activo TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_clientes_nombre (nombre),
+  INDEX idx_clientes_distrito (distrito)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS ventas (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  codigo VARCHAR(30) NOT NULL UNIQUE,
+  codigo VARCHAR(30) NOT NULL,
+  cliente_id INT NULL,
+  anio_pedido INT NULL,
   fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   cliente VARCHAR(120) NULL,
   total DECIMAL(10,2) NOT NULL DEFAULT 0,
@@ -49,7 +67,9 @@ CREATE TABLE IF NOT EXISTS ventas (
   estado_pedido VARCHAR(20) NOT NULL DEFAULT 'pendiente',
   notas VARCHAR(255) NULL,
   usuario VARCHAR(80) NOT NULL DEFAULT 'local',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_ventas_codigo_anio (codigo, anio_pedido),
+  CONSTRAINT fk_venta_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS venta_detalles (
@@ -132,3 +152,6 @@ INSERT IGNORE INTO recetas (producto_id, insumo_id, cantidad)
 SELECT p.id, i.id, 1.00 FROM productos p CROSS JOIN insumos i WHERE p.codigo = 'SOM-01' AND i.codigo = 'ARM-SOM';
 INSERT IGNORE INTO recetas (producto_id, insumo_id, cantidad)
 SELECT p.id, i.id, 4.00 FROM productos p CROSS JOIN insumos i WHERE p.codigo = 'SOM-01' AND i.codigo = 'TELA-SOM';
+
+UPDATE productos SET orden = id WHERE orden = 0;
+UPDATE ventas SET anio_pedido = YEAR(fecha) WHERE anio_pedido IS NULL;

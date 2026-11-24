@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, CircleAlert, Package, Boxes, ShoppingCart, ListChecks, TrendingUp, LogIn, Sparkles, Activity } from 'lucide-react';
-import { api, money, num, fecha } from '../api.js';
+import { api, money, num, fecha, estadoStock, minimoTexto } from '../api.js';
 
 const tipoNombre = {
   fabricacion: 'Fabricación', venta: 'Venta', anulacion: 'Anulación',
@@ -117,13 +117,16 @@ export default function Dashboard({ refresh, notify, ir }) {
               <div className="overflow-x-auto">
                 <table className="table table-sm table-zebra">
                   <thead><tr><th>Producto</th><th className="text-right">Stock</th><th className="text-right">Mínimo</th></tr></thead>
-                  <tbody>{data.bajoProductos.map((p) => (
-                    <tr key={p.id}>
-                      <td>{p.nombre}</td>
-                      <td className="text-right"><span className="badge badge-error badge-sm">{p.stock}</span></td>
-                      <td className="text-right opacity-60">{p.stock_minimo}</td>
-                    </tr>
-                  ))}</tbody>
+                  <tbody>{data.bajoProductos.map((p) => {
+                    const estado = estadoStock(p);
+                    return (
+                      <tr key={p.id}>
+                        <td>{p.nombre}</td>
+                        <td className="text-right"><span className={`badge badge-sm ${estado.badge}`}>{p.stock}</span></td>
+                        <td className="text-right opacity-60">{minimoTexto(p.stock_minimo)}</td>
+                      </tr>
+                    );
+                  })}</tbody>
                 </table>
               </div>
             ) : <div className="py-8 text-center text-sm opacity-50">Todo el inventario está por encima del mínimo</div>}
@@ -140,13 +143,16 @@ export default function Dashboard({ refresh, notify, ir }) {
               <div className="overflow-x-auto">
                 <table className="table table-sm table-zebra">
                   <thead><tr><th>Insumo</th><th className="text-right">Stock</th><th className="text-right">Mínimo</th></tr></thead>
-                  <tbody>{data.bajoInsumos.map((i) => (
-                    <tr key={i.id}>
-                      <td>{i.nombre}</td>
-                      <td className="text-right"><span className="badge badge-error badge-sm">{num(i.stock, 2)} {i.unidad}</span></td>
-                      <td className="text-right opacity-60">{num(i.stock_minimo, 2)}</td>
-                    </tr>
-                  ))}</tbody>
+                  <tbody>{data.bajoInsumos.map((i) => {
+                    const estado = estadoStock(i);
+                    return (
+                      <tr key={i.id}>
+                        <td>{i.nombre}</td>
+                        <td className="text-right"><span className={`badge badge-sm ${estado.badge}`}>{num(i.stock, 2)} {i.unidad}</span></td>
+                        <td className="text-right opacity-60">{minimoTexto(i.stock_minimo)}</td>
+                      </tr>
+                    );
+                  })}</tbody>
                 </table>
               </div>
             ) : <div className="py-8 text-center text-sm opacity-50">No hay insumos por debajo del mínimo</div>}

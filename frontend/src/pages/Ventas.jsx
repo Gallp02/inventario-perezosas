@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
-import { ShoppingCart, Plus, Trash2, Receipt, Undo2 } from 'lucide-react';
-import { api, money, num, fecha } from '../api.js';
+import {
+  ShoppingCart, Plus, Trash2, Receipt, Undo2, Eye, MapPin, FileText
+} from 'lucide-react';
+import { api, money, num, fecha, DISTRITOS_LIMA } from '../api.js';
 
-const BORRADOR_KEY = 'inv_venta_borrador_v1';
+const BORRADOR_KEY = 'inv_venta_borrador_v2';
 const BORRADOR_VACIO = {
   productoId: '',
   cantidad: '1',
   precio: '',
   carrito: [],
+  clienteId: '',
   cliente: '',
+  distrito: '',
   notas: '',
   comprobante: null
 };
@@ -26,10 +30,12 @@ function leerBorrador() {
   }
 }
 
-export default function Ventas({ productos, refresh, notify, usuario }) {
+export default function Ventas({ productos, clientes, refresh, notify, usuario }) {
   const [borrador, setBorrador] = useState(leerBorrador);
   const [ventas, setVentas] = useState([]);
-  const { productoId, cantidad, precio, carrito, cliente, notas, comprobante } = borrador;
+  const [pedido, setPedido] = useState(null);
+  const [confirmar, setConfirmar] = useState(null);
+  const { productoId, cantidad, precio, carrito, clienteId, cliente, distrito, notas, comprobante } = borrador;
 
   const actualizar = (cambios) => setBorrador((actual) => ({ ...actual, ...cambios }));
 
@@ -48,6 +54,14 @@ export default function Ventas({ productos, refresh, notify, usuario }) {
   const seleccionarProducto = (id) => {
     const producto = productos.find((p) => String(p.id) === String(id));
     actualizar({ productoId: id, precio: producto ? String(producto.precio_venta) : '' });
+  };
+
+  const seleccionarCliente = (id) => {
+    const encontrado = clientes.find((c) => String(c.id) === String(id));
+    actualizar({
+      clienteId: id,
+      cliente: encontrado ? `${encontrado.nombre}${encontrado.distrito ? ` · ${encontrado.distrito}` : ''}` : ''
+    });
   };
 
   const cambiarPrecio = (productoIdItem, valor) => {
@@ -92,17 +106,24 @@ export default function Ventas({ productos, refresh, notify, usuario }) {
       return notify('Revisa los precios de la venta', 'error');
     }
     try {
-      const res = await api.post('/ventas', { cliente, notas, usuario, items });
+      const res = await api.post('/ventas', {
+        cliente_id: clienteId ? Number(clienteId) : null,
+        cliente,
+        notas,
+        usuario,
+        items
+      });
       actualizar({
         productoId: '',
         cantidad: '1',
         precio: '',
         carrito: [],
+        clienteId: '',
         cliente: '',
         notas: '',
         comprobante: res
       });
-      notify(`Venta ${res.codigo} registrada. Stock descontado.`);
+      notify(`Orden ${res.codigo} registrada. Stock descontado.`);
       cargarVentas();
       refresh();
     } catch (error) {
@@ -116,20 +137,36 @@ export default function Ventas({ productos, refresh, notify, usuario }) {
       notify(res.mensaje);
       cargarVentas();
       refresh();
+      setPedido(null);
+    } catch (error) {
+      notify(error.message, 'error');
+    }
+  };
+
+  const eliminar = async () => {
+    try {
+      const res = await api.del(`/ventas/${confirmar.id}`, { usuario });
+      notify(res.mensaje);
+      setConfirmar(null);
+      setPedido(null);
+      cargarVentas();
+      refresh();
     } catch (error) {
       notify(error.message, 'error');
     }
   };
 
   const total = carrito.reduce((sum, i) => sum + (Number(i.precio_unitario) || 0) * i.cantidad, 0);
+  const clientesDisponibles = clientes.filter((c) => c.activo && (!distrito || c.distrito === distrito));
+  const distritos = [...new Set([...DISTRITOS_LIMA, ...clientes.map((c) => c.distrito).filter(Boolean)])].sort();
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
       <div className="space-y-5">
-        <div className="card border border-base-200 bg-base-100 shadow-sm">
+        <div className="card glass-panel border border-primary/10 bg-base-100/70 shadow-xl">
           <div className="card-body p-5">
             <div className="card-title flex items-center gap-2 text-base"><ShoppingCart size={18} className="text-primary" /> Registrar venta</div>
-            <p className="text-sm opacity-60">Ajusta el precio antes de confirmar. El borrador se conserva al cambiar de sección.</p>
+            <p className="text-sm opacity-60">Precio editable por item. El borrador se conserva al cambiar de sección.</p>
 
             <div className="mt-4 flex flex-wrap items-end gap-2">
               <label className="form-control min-w-56 flex-1">
@@ -181,9 +218,27 @@ export default function Ventas({ productos, refresh, notify, usuario }) {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="form-control"><span className="label-text text-xs font-semibold">Cliente (opcional)</span><input className="input input-bordered input-sm" value={cliente} onChange={(e) => actualizar({ cliente: e.target.value })} /></label>
-              <label className="form-control"><span className="label-text text-xs font-semibold">Notas (opcional)</span><input className="input input-bordered input-sm" value={notas} onChange={(e) => actualizar({ notas: e.target.value })} /></label>
+              <label className="form-control">
+                <span className="label-text text-xs font-semibold">Cliente de la cartelera</span>
+                <select className="select select-bordered select-sm" value={clienteId} onChange={(e) => seleccionarCliente(e.target.value)}>
+                  <option value="">Indefinido / Mostrador</option>
+                  {clientesDisponibles.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nombre} · {c.distrito || 'Sin distrito'}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="form-control">
+                <span className="label-text text-xs font-semibold"><MapPin size={12} className="inline" /> Filtrar por distrito</span>
+                <select className="select select-bordered select-sm" value={distrito} onChange={(e) => actualizar({ distrito: e.target.value })}>
+                  <option value="">Todos los distritos</option>
+                  {distritos.map((d) => <option key={d}>{d}</option>)}
+                </select>
+              </label>
             </div>
+            {!clientes.length && (
+              <p className="mt-2 text-xs text-warning">Aún no hay clientes. Agrégalos desde la pestaña Clientes.</p>
+            )}
+            <label className="form-control mt-3"><span className="label-text text-xs font-semibold">Notas (opcional)</span><input className="input input-bordered input-sm" value={notas} onChange={(e) => actualizar({ notas: e.target.value })} /></label>
 
             <div className="my-5 flex items-center justify-between rounded-box bg-primary/10 p-4">
               <span className="text-sm font-semibold">Total de la venta</span>
@@ -205,22 +260,32 @@ export default function Ventas({ productos, refresh, notify, usuario }) {
         )}
       </div>
 
-      <div className="card border border-base-200 bg-base-100 shadow-sm">
+      <div className="card glass-panel border border-primary/10 bg-base-100/70 shadow-xl">
         <div className="card-body p-5">
-          <div className="card-title text-base">Ventas recientes</div>
+          <div className="card-title flex items-center justify-between text-base">
+            <span>Ventas recientes</span>
+            <span className="badge badge-outline badge-sm">{ventas.length}</span>
+          </div>
           <div className="overflow-x-auto">
             <table className="table table-sm table-zebra">
-              <thead><tr><th>Código</th><th>Fecha</th><th className="text-right">Total</th><th className="text-right">Estado</th></tr></thead>
+              <thead><tr><th>Orden</th><th>Cliente</th><th className="text-right">Total</th><th className="text-right">Acciones</th></tr></thead>
               <tbody>
                 {ventas.map((v) => (
-                  <tr key={v.id}>
-                    <td className="font-mono text-xs">{v.codigo}</td>
-                    <td className="whitespace-nowrap text-xs opacity-60">{fecha(v.fecha)}</td>
+                  <tr key={v.id} className={v.estado === 'anulada' ? 'opacity-60' : ''}>
+                    <td>
+                      <div className="font-mono text-xs font-bold">{v.codigo}</div>
+                      <div className="text-[10px] opacity-50">{fecha(v.fecha)}</div>
+                    </td>
+                    <td className="max-w-32 truncate text-xs">{v.cliente || 'Indefinido'}</td>
                     <td className="text-right font-mono">{money(v.total)}</td>
                     <td className="text-right">
-                      {v.estado === 'completada' ? (
-                        <button className="btn btn-ghost btn-xs text-error" onClick={() => anular(v)}><Undo2 size={14} /> Anular</button>
-                      ) : <span className="badge badge-warning badge-sm">Anulada</span>}
+                      <div className="flex flex-wrap justify-end gap-1">
+                        <button className="btn btn-ghost btn-xs" onClick={() => setPedido(v)}><Eye size={14} /> Ver</button>
+                        {v.estado === 'completada' ? (
+                          <button className="btn btn-ghost btn-xs text-error" onClick={() => anular(v)}><Undo2 size={14} /> Anular</button>
+                        ) : <span className="badge badge-warning badge-sm">Anulada</span>}
+                        <button className="btn btn-ghost btn-xs text-error" onClick={() => setConfirmar(v)}><Trash2 size={14} /> Eliminar</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -230,6 +295,61 @@ export default function Ventas({ productos, refresh, notify, usuario }) {
           </div>
         </div>
       </div>
+
+      {pedido && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-xl">
+            <div className="modal-action -mt-2 mb-2 justify-between">
+              <h3 className="text-lg font-bold">Pedido {pedido.codigo}</h3>
+              <button className="btn btn-ghost btn-sm btn-circle" onClick={() => setPedido(null)}>✕</button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div><span className="opacity-50">Cliente</span><div className="font-semibold">{pedido.cliente || 'Indefinido'}</div></div>
+              <div><span className="opacity-50">Fecha</span><div className="font-semibold">{fecha(pedido.fecha)}</div></div>
+              <div><span className="opacity-50">Estado venta</span><div className={`font-semibold ${pedido.estado === 'anulada' ? 'text-warning' : 'text-success'}`}>{pedido.estado}</div></div>
+              <div><span className="opacity-50">Estado pedido</span><div className="font-semibold capitalize">{pedido.estado_pedido?.replaceAll('_', ' ')}</div></div>
+            </div>
+            <div className="mt-4 overflow-x-auto">
+              <table className="table table-sm table-zebra">
+                <thead><tr><th>Producto</th><th className="text-right">Cant.</th><th className="text-right">P. unit.</th><th className="text-right">Subtotal</th></tr></thead>
+                <tbody>
+                  {(pedido.items || []).map((item) => (
+                    <tr key={item.id}>
+                      <td className="font-medium">{item.producto_nombre}</td>
+                      <td className="text-right">{num(item.cantidad)}</td>
+                      <td className="text-right font-mono">{money(item.precio_unitario)}</td>
+                      <td className="text-right font-mono">{money(item.subtotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-3 flex justify-between border-t border-base-200 pt-3"><span className="text-sm">Total</span><span className="text-2xl font-black text-primary">{money(pedido.total)}</span></div>
+            <div className="modal-action">
+              <button className="btn btn-ghost btn-sm" onClick={() => setPedido(null)}>Cerrar</button>
+              {pedido.estado === 'completada' && <button className="btn btn-outline btn-sm gap-1" onClick={() => anular(pedido)}><Undo2 size={14} /> Anular pedido</button>}
+              <button className="btn btn-error btn-sm gap-1" onClick={() => setConfirmar(pedido)}><Trash2 size={14} /> Eliminar pedido</button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => setPedido(null)} />
+        </div>
+      )}
+
+      {confirmar && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-md">
+            <h3 className="flex items-center gap-2 text-lg font-bold"><FileText size={18} /> Eliminar pedido</h3>
+            <p className="py-3 text-sm opacity-70">
+              Se eliminará el pedido <strong>{confirmar.codigo}</strong>. Si está activo, se devolverá el stock antes de borrarlo.
+            </p>
+            <div className="modal-action">
+              <button className="btn btn-error btn-sm" onClick={eliminar}>Sí, eliminar</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setConfirmar(null)}>Cancelar</button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => setConfirmar(null)} />
+        </div>
+      )}
     </div>
   );
 }

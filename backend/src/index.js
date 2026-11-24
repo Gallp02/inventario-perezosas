@@ -131,6 +131,7 @@ app.post('/api/logout', (req, res) => {
 });
 
 app.use('/api/catalogos', require('./routes/catalogos'));
+app.use('/api/clientes', require('./routes/clientes'));
 app.use('/api', require('./routes/operaciones'));
 app.use('/api', (req, res) => res.status(404).json({ error: 'Endpoint no encontrado' }));
 

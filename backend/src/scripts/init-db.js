@@ -8,13 +8,24 @@ const esquema = fs.readFileSync(ruta, 'utf8')
   .filter((linea) => !/^\s*(CREATE DATABASE|USE)\b/i.test(linea))
   .join('\n');
 const sentencias = esquema.split(';').map((s) => s.trim()).filter(Boolean);
+const ignorables = [1050, 1060, 1061, 1091];
+const migraciones = [
+  'ALTER TABLE productos ADD COLUMN orden INT NOT NULL DEFAULT 0',
+  'UPDATE productos SET orden = id WHERE orden = 0',
+  'ALTER TABLE ventas ADD COLUMN cliente_id INT NULL',
+  'ALTER TABLE ventas ADD COLUMN anio_pedido INT NULL',
+  'UPDATE ventas SET anio_pedido = YEAR(fecha) WHERE anio_pedido IS NULL',
+  'ALTER TABLE ventas DROP INDEX codigo',
+  'ALTER TABLE ventas ADD UNIQUE KEY uq_ventas_codigo_anio (codigo, anio_pedido)',
+  'ALTER TABLE ventas ADD CONSTRAINT fk_venta_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id)'
+];
 
 (async () => {
-  for (const sentencia of sentencias) {
+  for (const sentencia of [...sentencias, ...migraciones]) {
     try {
       await pool.query(sentencia);
     } catch (error) {
-      if (![1050, 1061].includes(error.errno)) throw error;
+      if (!ignorables.includes(error.errno)) throw error;
     }
   }
   console.log('Base de datos inicializada');

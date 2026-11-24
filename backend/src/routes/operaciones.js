@@ -19,10 +19,18 @@ function signed(value, field) {
   return n;
 }
 
-function codeVenta() {
-  const d = new Date();
-  const fecha = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-  return `V-${fecha}-${String(Date.now()).slice(-5)}`;
+const MESES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+
+async function nextCodigoVenta(conn) {
+  const ahora = new Date();
+  const anio = ahora.getFullYear();
+  const prefijo = MESES[ahora.getMonth()];
+  const [[fila]] = await conn.query(
+    `SELECT MAX(CAST(SUBSTRING_INDEX(codigo, '-', -1) AS UNSIGNED)) AS ultimo
+     FROM ventas WHERE anio_pedido = ? AND codigo LIKE ?`,
+    [anio, `${prefijo}-%`]
+  );
+  return { codigo: `${prefijo}-${Number(fila.ultimo || 0) + 1}`, anio };
 }
 
 router.post('/fabricar', async (req, res, next) => {
@@ -88,9 +96,17 @@ router.post('/ventas', async (req, res, next) => {
   try {
     const items = Array.isArray(req.body.items) ? req.body.items : [];
     if (!items.length) fail(400, 'La venta necesita al menos un producto');
-    const cliente = String(req.body.cliente || '').trim();
+    const clienteId = req.body.cliente_id ? Number(req.body.cliente_id) : null;
+    let cliente = String(req.body.cliente || '').trim();
     const notas = String(req.body.notas || '').trim();
     const usuario = String(req.body.usuario || 'local').trim() || 'local';
+    if (clienteId) {
+      const [clientes] = await pool.query('SELECT * FROM clientes WHERE id = ? AND activo = 1', [clienteId]);
+      if (!clientes.length) fail(400, 'Cliente no encontrado');
+      const c = clientes[0];
+      cliente = `${c.nombre}${c.distrito ? ` · ${c.distrito}` : ''}`;
+    }
+    if (!cliente) cliente = 'Indefinido';
     const normalizados = items.map((item) => ({
       producto_id: Number(item.producto_id),
       cantidad: positive(item.cantidad, 'Cantidad', true),
@@ -115,10 +131,11 @@ router.post('/ventas', async (req, res, next) => {
     });
     if (faltantes.length) fail(400, `Stock insuficiente: ${faltantes.join(', ')}`);
     const total = Number(detalles.reduce((sum, d) => sum + d.subtotal, 0).toFixed(2));
-    const codigo = codeVenta();
+    const { codigo, anio } = await nextCodigoVenta(conn);
     const [result] = await conn.query(
-      `INSERT INTO ventas (codigo, cliente, total, notas, usuario) VALUES (?, ?, ?, ?, ?)`,
-      [codigo, cliente || null, total, notas || null, usuario]
+      `INSERT INTO ventas (codigo, anio_pedido, cliente_id, cliente, total, notas, usuario)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [codigo, anio, clienteId, cliente, total, notas || null, usuario]
     );
     const ventaId = result.insertId;
     for (const d of detalles) {
@@ -139,6 +156,7 @@ router.post('/ventas', async (req, res, next) => {
     res.status(201).json({
       id: ventaId,
       codigo,
+      orden: codigo,
       cliente,
       total,
       items: detalles.map((d) => ({
@@ -190,6 +208,42 @@ router.post('/ventas/:id/anular', async (req, res, next) => {
   }
 });
 
+router.delete('/ventas/:id', async (req, res, next) => {
+  const conn = await pool.getConnection();
+  try {
+    const id = Number(req.params.id);
+    const usuario = String(req.body.usuario || 'local').trim() || 'local';
+    await conn.beginTransaction();
+    const [ventas] = await conn.query('SELECT * FROM ventas WHERE id = ? FOR UPDATE', [id]);
+    if (!ventas.length) fail(404, 'Venta no encontrada');
+    const venta = ventas[0];
+    const [detalles] = await conn.query('SELECT * FROM venta_detalles WHERE venta_id = ?', [id]);
+    if (venta.estado === 'completada') {
+      for (const d of detalles) {
+        const [products] = await conn.query('SELECT stock FROM productos WHERE id = ? FOR UPDATE', [d.producto_id]);
+        if (!products.length) continue;
+        const anterior = products[0].stock;
+        const nuevo = anterior + d.cantidad;
+        await conn.query('UPDATE productos SET stock = ? WHERE id = ?', [nuevo, d.producto_id]);
+        await conn.query(
+          `INSERT INTO movimientos_producto (producto_id, tipo, cantidad, anterior, nuevo, referencia, usuario)
+           VALUES (?, 'anulacion', ?, ?, ?, ?, ?)`,
+          [d.producto_id, d.cantidad, anterior, nuevo, `Eliminación ${venta.codigo}`, usuario]
+        );
+      }
+    }
+    await conn.query('DELETE FROM venta_detalles WHERE venta_id = ?', [id]);
+    await conn.query('DELETE FROM ventas WHERE id = ?', [id]);
+    await conn.commit();
+    res.json({ mensaje: `Venta ${venta.codigo} eliminada` });
+  } catch (error) {
+    await conn.rollback();
+    next(error);
+  } finally {
+    conn.release();
+  }
+});
+
 router.post('/insumos/:id/entrada', async (req, res, next) => {
   const conn = await pool.getConnection();
   try {
@@ -210,6 +264,35 @@ router.post('/insumos/:id/entrada', async (req, res, next) => {
     );
     await conn.commit();
     res.json({ mensaje: 'Entrada registrada', stock: nuevo });
+  } catch (error) {
+    await conn.rollback();
+    next(error);
+  } finally {
+    conn.release();
+  }
+});
+
+router.post('/insumos/:id/ajuste', async (req, res, next) => {
+  const conn = await pool.getConnection();
+  try {
+    const id = Number(req.params.id);
+    const delta = signed(req.body.cantidad, 'Cantidad');
+    const referencia = String(req.body.referencia || 'Ajuste manual').trim();
+    const usuario = String(req.body.usuario || 'local').trim() || 'local';
+    await conn.beginTransaction();
+    const [rows] = await conn.query('SELECT stock FROM insumos WHERE id = ? FOR UPDATE', [id]);
+    if (!rows.length) fail(404, 'Insumo no encontrado');
+    const anterior = Number(rows[0].stock);
+    const nuevo = Number((anterior + delta).toFixed(2));
+    if (nuevo < 0) fail(400, 'El ajuste dejaría stock negativo');
+    await conn.query('UPDATE insumos SET stock = ? WHERE id = ?', [nuevo, id]);
+    await conn.query(
+      `INSERT INTO movimientos_insumo (insumo_id, tipo, cantidad, anterior, nuevo, referencia, usuario)
+       VALUES (?, 'ajuste', ?, ?, ?, ?, ?)`,
+      [id, delta, anterior, nuevo, referencia, usuario]
+    );
+    await conn.commit();
+    res.json({ mensaje: 'Ajuste registrado', stock: nuevo });
   } catch (error) {
     await conn.rollback();
     next(error);
@@ -260,6 +343,21 @@ router.get('/ventas', async (req, res, next) => {
       map.get(d.venta_id).push(d);
     }
     res.json(ventas.map((v) => ({ ...v, items: map.get(v.id) || [] })));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/ventas/:id', async (req, res, next) => {
+  try {
+    const [ventas] = await pool.query('SELECT * FROM ventas WHERE id = ?', [req.params.id]);
+    if (!ventas.length) fail(404, 'Venta no encontrada');
+    const [detalles] = await pool.query(
+      `SELECT d.*, p.nombre AS producto_nombre FROM venta_detalles d
+       JOIN productos p ON p.id = d.producto_id WHERE d.venta_id = ? ORDER BY d.id`,
+      [req.params.id]
+    );
+    res.json({ ...ventas[0], items: detalles });
   } catch (error) {
     next(error);
   }
@@ -368,13 +466,13 @@ router.get('/dashboard', async (req, res, next) => {
   try {
     const [productos] = await pool.query(
       `SELECT COUNT(*) AS total,
-              SUM(CASE WHEN stock <= stock_minimo THEN 1 ELSE 0 END) AS stock_bajo,
+              SUM(CASE WHEN stock <= 20 OR (stock_minimo <> -1 AND stock <= stock_minimo) THEN 1 ELSE 0 END) AS stock_bajo,
               SUM(stock) AS unidades
        FROM productos WHERE activo = 1`
     );
     const [insumos] = await pool.query(
       `SELECT COUNT(*) AS total,
-              SUM(CASE WHEN stock <= stock_minimo THEN 1 ELSE 0 END) AS stock_bajo
+              SUM(CASE WHEN stock <= 20 OR (stock_minimo <> -1 AND stock <= stock_minimo) THEN 1 ELSE 0 END) AS stock_bajo
        FROM insumos WHERE activo = 1`
     );
     const [ventasHoy] = await pool.query(
@@ -386,10 +484,14 @@ router.get('/dashboard', async (req, res, next) => {
        WHERE estado = 'completada' AND YEAR(fecha) = YEAR(CURDATE()) AND MONTH(fecha) = MONTH(CURDATE())`
     );
     const [bajoProductos] = await pool.query(
-      'SELECT id, codigo, nombre, stock, stock_minimo FROM productos WHERE activo = 1 AND stock <= stock_minimo ORDER BY stock LIMIT 10'
+      `SELECT id, codigo, nombre, stock, stock_minimo FROM productos
+       WHERE activo = 1 AND (stock <= 20 OR (stock_minimo <> -1 AND stock <= stock_minimo))
+       ORDER BY stock LIMIT 10`
     );
     const [bajoInsumos] = await pool.query(
-      'SELECT id, codigo, nombre, stock, stock_minimo, unidad FROM insumos WHERE activo = 1 AND stock <= stock_minimo ORDER BY stock LIMIT 10'
+      `SELECT id, codigo, nombre, stock, stock_minimo, unidad FROM insumos
+       WHERE activo = 1 AND (stock <= 20 OR (stock_minimo <> -1 AND stock <= stock_minimo))
+       ORDER BY stock LIMIT 10`
     );
     const [masVendidos] = await pool.query(
       `SELECT p.nombre, SUM(d.cantidad) AS vendidas FROM venta_detalles d

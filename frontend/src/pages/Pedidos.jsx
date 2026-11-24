@@ -130,7 +130,8 @@ export default function Pedidos({ refresh, notify }) {
                 <div className="card-body gap-3 p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="font-semibold tracking-tight">{pedido.codigo}</div>
+                      <div className="text-[10px] font-semibold uppercase tracking-widest text-primary/60">Orden</div>
+                      <div className="font-black tracking-tight">{pedido.codigo}</div>
                       <div className="flex items-center gap-1 text-xs opacity-60">
                         <Clock3 size={12} /> {fecha(pedido.fecha)}
                       </div>

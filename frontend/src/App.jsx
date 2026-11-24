@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   LayoutDashboard, Package, Boxes, ClipboardList, Factory,
-  ShoppingCart, ListChecks, History, Palette, UserRound, LogOut, Radio
+  ShoppingCart, ListChecks, History, Palette, UserRound, LogOut, Radio, UsersRound
 } from 'lucide-react';
 import { api } from './api.js';
 import Dashboard from './pages/Dashboard.jsx';
@@ -11,6 +11,7 @@ import Recetas from './pages/Recetas.jsx';
 import Fabricar from './pages/Fabricar.jsx';
 import Ventas from './pages/Ventas.jsx';
 import Pedidos from './pages/Pedidos.jsx';
+import Clientes from './pages/Clientes.jsx';
 import Movimientos from './pages/Movimientos.jsx';
 import Login from './pages/Login.jsx';
 
@@ -21,6 +22,7 @@ const NAV = [
   { id: 'recetas', label: 'Recetas', icon: ClipboardList },
   { id: 'fabricar', label: 'Fabricar', icon: Factory },
   { id: 'ventas', label: 'Ventas', icon: ShoppingCart },
+  { id: 'clientes', label: 'Clientes', icon: UsersRound },
   { id: 'pedidos', label: 'Pedidos', icon: ListChecks },
   { id: 'movimientos', label: 'Movimientos', icon: History }
 ];
@@ -32,6 +34,7 @@ export default function App() {
   const [productos, setProductos] = useState([]);
   const [insumos, setInsumos] = useState([]);
   const [recetas, setRecetas] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [autenticando, setAutenticando] = useState(true);
   const [toast, setToast] = useState(null);
@@ -39,14 +42,16 @@ export default function App() {
   const [tema, setTema] = useState(() => localStorage.getItem('inv_tema') || 'dark');
 
   const refresh = useCallback(async () => {
-    const [p, i, r] = await Promise.all([
+    const [p, i, r, c] = await Promise.all([
       api.get('/catalogos/productos'),
       api.get('/catalogos/insumos'),
-      api.get('/catalogos/recetas')
+      api.get('/catalogos/recetas'),
+      api.get('/clientes?incluirInactivos=1')
     ]);
     setProductos(p);
     setInsumos(i);
     setRecetas(r);
+    setClientes(c);
   }, []);
 
   const notify = useCallback((mensaje, tipo = 'ok') => {
@@ -88,7 +93,7 @@ export default function App() {
 
   if (!usuario) return <Login onOk={setUsuario} />;
 
-  const shared = { productos, insumos, recetas, refresh, notify, usuario };
+  const shared = { productos, insumos, recetas, clientes, refresh, notify, usuario };
   const titulo = NAV.find((n) => n.id === page)?.label || 'Resumen';
 
   return (
@@ -169,6 +174,7 @@ export default function App() {
             {page === 'recetas' && <Recetas {...shared} />}
             {page === 'fabricar' && <Fabricar {...shared} />}
             {page === 'ventas' && <Ventas {...shared} />}
+            {page === 'clientes' && <Clientes {...shared} />}
             {page === 'pedidos' && <Pedidos {...shared} />}
             {page === 'movimientos' && <Movimientos {...shared} />}
           </div>

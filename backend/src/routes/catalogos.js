@@ -13,6 +13,13 @@ function decimal(value, field, min = 0) {
   return n;
 }
 
+function minimo(value, field) {
+  if (value === 'indefinido' || value === 'Indefinido' || value === -1 || value === '-1') return -1;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) fail(400, `${field} debe ser un número válido o Indefinido`);
+  return Math.round(n);
+}
+
 function text(value, field, required = true) {
   const v = String(value ?? '').trim();
   if (required && !v) fail(400, `${field} es obligatorio`);
@@ -22,11 +29,30 @@ function text(value, field, required = true) {
 router.get('/productos', async (req, res, next) => {
   try {
     const [rows] = await pool.query(
-      'SELECT * FROM productos ORDER BY activo DESC, categoria, nombre'
+      'SELECT * FROM productos ORDER BY orden ASC, activo DESC, categoria, nombre'
     );
     res.json(rows);
   } catch (error) {
     next(error);
+  }
+});
+
+router.put('/productos/reordenar', async (req, res, next) => {
+  const conn = await pool.getConnection();
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number) : [];
+    if (!ids.length || ids.some((id) => !Number.isInteger(id) || id <= 0)) fail(400, 'Orden inválido');
+    await conn.beginTransaction();
+    for (let index = 0; index < ids.length; index += 1) {
+      await conn.query('UPDATE productos SET orden = ? WHERE id = ?', [index + 1, ids[index]]);
+    }
+    await conn.commit();
+    res.json({ mensaje: 'Orden actualizado' });
+  } catch (error) {
+    await conn.rollback();
+    next(error);
+  } finally {
+    conn.release();
   }
 });
 
@@ -40,11 +66,13 @@ router.post('/productos', async (req, res, next) => {
       text(b.descripcion, 'Descripción', false),
       decimal(b.precio_venta, 'Precio de venta'),
       Math.round(decimal(b.stock, 'Stock')),
-      Math.round(decimal(b.stock_minimo, 'Stock mínimo'))
+      minimo(b.stock_minimo, 'Stock mínimo')
     ];
+    const [[siguiente]] = await pool.query('SELECT COALESCE(MAX(orden), 0) + 1 AS orden FROM productos');
+    values.push(siguiente.orden);
     const [result] = await pool.query(
-      `INSERT INTO productos (codigo, nombre, categoria, descripcion, precio_venta, stock, stock_minimo)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO productos (codigo, nombre, categoria, descripcion, precio_venta, stock, stock_minimo, orden)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       values
     );
     const [rows] = await pool.query('SELECT * FROM productos WHERE id = ?', [result.insertId]);
@@ -68,7 +96,7 @@ router.put('/productos/:id', async (req, res, next) => {
       text(b.categoria ?? p.categoria, 'Categoría'),
       text(b.descripcion ?? p.descripcion, 'Descripción', false),
       decimal(b.precio_venta ?? p.precio_venta, 'Precio de venta'),
-      Math.round(decimal(b.stock_minimo ?? p.stock_minimo, 'Stock mínimo')),
+      minimo(b.stock_minimo ?? p.stock_minimo, 'Stock mínimo'),
       b.activo === undefined ? p.activo : (b.activo ? 1 : 0),
       id
     ];
@@ -89,7 +117,7 @@ router.delete('/productos/:id', async (req, res, next) => {
   try {
     const [result] = await pool.query('UPDATE productos SET activo = 0 WHERE id = ?', [req.params.id]);
     if (!result.affectedRows) fail(404, 'Producto no encontrado');
-    res.json({ mensaje: 'Producto desactivado' });
+    res.json({ mensaje: 'Producto archivado' });
   } catch (error) {
     next(error);
   }
@@ -113,7 +141,7 @@ router.post('/insumos', async (req, res, next) => {
       text(b.categoria, 'Categoría'),
       text(b.unidad || 'pza', 'Unidad'),
       decimal(b.stock, 'Stock'),
-      decimal(b.stock_minimo, 'Stock mínimo'),
+      minimo(b.stock_minimo, 'Stock mínimo'),
       decimal(b.costo_unitario, 'Costo unitario')
     ];
     const [result] = await pool.query(
@@ -141,7 +169,7 @@ router.put('/insumos/:id', async (req, res, next) => {
       text(b.nombre ?? i.nombre, 'Nombre'),
       text(b.categoria ?? i.categoria, 'Categoría'),
       text(b.unidad ?? i.unidad, 'Unidad'),
-      decimal(b.stock_minimo ?? i.stock_minimo, 'Stock mínimo'),
+      minimo(b.stock_minimo ?? i.stock_minimo, 'Stock mínimo'),
       decimal(b.costo_unitario ?? i.costo_unitario, 'Costo unitario'),
       b.activo === undefined ? i.activo : (b.activo ? 1 : 0),
       id

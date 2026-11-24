@@ -17,6 +17,7 @@ const migraciones = [
   'UPDATE ventas SET anio_pedido = YEAR(fecha) WHERE anio_pedido IS NULL',
   'ALTER TABLE ventas DROP INDEX codigo',
   'ALTER TABLE ventas ADD UNIQUE KEY uq_ventas_codigo_anio (codigo, anio_pedido)',
+  'ALTER TABLE ventas DROP FOREIGN KEY fk_venta_cliente',
   'ALTER TABLE ventas ADD CONSTRAINT fk_venta_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id)'
 ];
 

@@ -169,7 +169,7 @@ export default function Productos({ productos, refresh, notify, usuario }) {
                   return (
                     <tr
                       key={p.id}
-                      className={`transition-all duration-150 ${!p.activo ? 'opacity-50' : ''} ${arrastrando === p.id ? 'relative z-10 scale-[1.008] bg-primary/10 shadow-[0_14px_32px_-16px_rgba(0,0,0,0.65)] outline outline-2 outline-primary/70' : ''} ${sobre === p.id && arrastrando !== p.id ? 'bg-secondary/10 outline outline-2 outline-dashed outline-secondary/60' : ''}`}
+                      className={`transition-all duration-150 ${!p.activo ? 'opacity-50' : ''} ${arrastrando === p.id ? 'relative z-10 scale-[1.008] bg-primary/10 [&>td]:bg-primary/10 shadow-[0_14px_32px_-16px_rgba(0,0,0,0.65)] outline outline-2 outline-primary/70' : ''} ${sobre === p.id && arrastrando !== p.id ? 'bg-secondary/10 [&>td]:bg-secondary/10 outline outline-2 outline-dashed outline-secondary/60' : ''}`}
                       onDragEnter={(event) => { event.preventDefault(); setSobre(p.id); }}
                       onDragOver={(event) => { event.preventDefault(); setSobre(p.id); }}
                       onDragLeave={() => setSobre((actual) => actual === p.id ? null : actual)}
@@ -186,7 +186,7 @@ export default function Productos({ productos, refresh, notify, usuario }) {
                             onDragStart={(event) => iniciarArrastre(event, p.id)}
                             onDragEnd={() => { setArrastrando(null); setSobre(null); }}
                           >
-                            <GripVertical size={17} className={`transition-opacity ${arrastrando === p.id ? 'text-primary opacity-100' : 'opacity-50 group-hover:opacity-100'}`} />
+                            <GripVertical size={18} className={`shrink-0 transition-colors ${arrastrando === p.id ? 'text-primary' : 'text-base-content/75 group-hover:text-primary'}`} />
                           </button>
                           {arrastrando === p.id && <span className="badge badge-primary badge-sm animate-pulse whitespace-nowrap">Moviendo</span>}
                         </div>

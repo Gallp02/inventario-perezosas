@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard, Package, Boxes, ClipboardList, Factory,
   ShoppingCart, ListChecks, History, Palette, UserRound, LogOut, Radio, UsersRound,
@@ -45,6 +45,7 @@ export default function App() {
     const guardado = localStorage.getItem('inv_menu_abierto');
     return guardado !== null ? guardado === '1' : window.innerWidth >= 1024;
   });
+  const menuInicializado = useRef(false);
 
   const refresh = useCallback(async () => {
     const [p, i, r, c] = await Promise.all([
@@ -83,6 +84,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!menuInicializado.current) {
+      menuInicializado.current = true;
+      return;
+    }
     localStorage.setItem('inv_menu_abierto', menuAbierto ? '1' : '0');
   }, [menuAbierto]);
 
@@ -107,21 +112,23 @@ export default function App() {
 
   return (
     <div className="app-shell flex min-h-screen flex-col lg:flex-row">
-      <aside className={`app-sidebar flex w-full shrink-0 flex-col border-b border-primary/10 bg-base-100/80 p-4 transition-[width] duration-200 lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:py-5 ${menuAbierto ? 'lg:w-64 lg:px-8' : 'lg:w-[5.5rem] lg:px-3'}`}>
+      <aside className={`app-sidebar flex w-full shrink-0 flex-col border-b border-primary/10 bg-base-100/80 p-4 transition-[width] duration-200 lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:py-5 ${menuAbierto ? 'lg:w-64 lg:px-8' : 'lg:w-28 lg:px-2'}`}>
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-secondary text-lg font-black text-primary-content shadow-lg">IP</div>
             {menuAbierto && (
               <div className="min-w-0">
-                <div className="section-kicker">Panel de control</div>
-                <div className="text-base font-extrabold leading-tight">Inventario</div>
-                <div className="text-xs text-base-content/50">Perezosas y más</div>
+                <div className="section-kicker truncate">Panel de control</div>
+                <div className="truncate text-base font-extrabold leading-tight">Inventario</div>
+                <div className="truncate text-xs text-base-content/50">Perezosas y más</div>
               </div>
             )}
           </div>
           <button
             className="btn btn-ghost btn-sm btn-square shrink-0"
             onClick={() => setMenuAbierto((abierto) => !abierto)}
+            aria-expanded={menuAbierto}
+            aria-controls="modulos-nav"
             aria-label={menuAbierto ? 'Contraer menú de módulos' : 'Expandir menú de módulos'}
             title={menuAbierto ? 'Contraer menú' : 'Expandir menú'}
           >
@@ -129,7 +136,7 @@ export default function App() {
           </button>
         </div>
 
-        <nav className={`mt-4 gap-1.5 lg:mt-8 ${menuAbierto ? 'flex overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0' : 'hidden lg:flex lg:flex-col'}`}>
+        <nav id="modulos-nav" className={`mt-4 gap-1.5 lg:mt-8 ${menuAbierto ? 'flex overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0' : 'hidden lg:flex lg:flex-col'}`}>
           {NAV.map((item) => {
             const Icon = item.icon;
             return (
@@ -137,7 +144,7 @@ export default function App() {
                 key={item.id}
                 aria-current={page === item.id ? 'page' : undefined}
                 title={menuAbierto ? undefined : item.label}
-                className={`btn btn-ghost ${menuAbierto ? 'btn-sm shrink-0 justify-start gap-2 whitespace-nowrap lg:btn-md lg:w-full' : 'btn-md w-full justify-center'} ${page === item.id ? 'nav-active text-primary' : ''}`}
+                className={`btn btn-ghost ${menuAbierto ? 'btn-sm shrink-0 justify-start gap-2 whitespace-nowrap lg:btn-md lg:w-full' : 'btn-md w-full justify-center px-0'} ${page === item.id ? 'nav-active text-primary' : ''}`}
                 onClick={() => setPage(item.id)}
               >
                 <Icon size={18} strokeWidth={2.2} />

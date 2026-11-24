@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   LayoutDashboard, Package, Boxes, ClipboardList, Factory,
-  ShoppingCart, ListChecks, History, Palette, UserRound, LogOut, Radio, UsersRound
+  ShoppingCart, ListChecks, History, Palette, UserRound, LogOut, Radio, UsersRound,
+  LayoutGrid, ChevronDown, X
 } from 'lucide-react';
 import { api } from './api.js';
 import Dashboard from './pages/Dashboard.jsx';
@@ -40,6 +41,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [usuario, setUsuario] = useState(null);
   const [tema, setTema] = useState(() => localStorage.getItem('inv_tema') || 'dark');
+  const [menuModulos, setMenuModulos] = useState(false);
 
   const refresh = useCallback(async () => {
     const [p, i, r, c] = await Promise.all([
@@ -76,6 +78,22 @@ export default function App() {
     window.addEventListener('inv:unauthorized', cerrarSesion);
     return () => window.removeEventListener('inv:unauthorized', cerrarSesion);
   }, []);
+
+  useEffect(() => {
+    if (!menuModulos) return;
+    const cerrarAlHacerClic = (event) => {
+      if (!event.target.closest('[data-menu-modulos]')) setMenuModulos(false);
+    };
+    const cerrarConEscape = (event) => {
+      if (event.key === 'Escape') setMenuModulos(false);
+    };
+    document.addEventListener('click', cerrarAlHacerClic);
+    document.addEventListener('keydown', cerrarConEscape);
+    return () => {
+      document.removeEventListener('click', cerrarAlHacerClic);
+      document.removeEventListener('keydown', cerrarConEscape);
+    };
+  }, [menuModulos]);
 
   useEffect(() => {
     if (!usuario) return;
@@ -151,7 +169,17 @@ export default function App() {
                 <span className="badge badge-outline badge-sm hidden gap-1.5 self-end sm:inline-flex"><Radio size={13} /> Control de mercadería</span>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="relative flex shrink-0 items-center gap-2" data-menu-modulos>
+              <button
+                className="btn btn-outline btn-sm gap-2"
+                aria-expanded={menuModulos}
+                onClick={() => setMenuModulos((abierto) => !abierto)}
+              >
+                <LayoutGrid size={15} />
+                <span className="hidden sm:inline">Módulos</span>
+                <ChevronDown size={14} className={`transition-transform ${menuModulos ? 'rotate-180' : ''}`} />
+              </button>
+              <div className="hidden h-6 w-px bg-base-300/60 sm:block" />
               <Palette size={16} className="shrink-0 opacity-50" />
               <select
                 className="select select-bordered select-sm w-36 capitalize"
@@ -164,6 +192,35 @@ export default function App() {
               <button className="btn btn-ghost btn-sm btn-square lg:hidden" onClick={salir} title="Cerrar sesión">
                 <LogOut size={16} />
               </button>
+
+              {menuModulos && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-primary/20 bg-base-100/95 p-3 shadow-2xl backdrop-blur-xl">
+                  <div className="mb-2 flex items-center justify-between px-1">
+                    <span className="section-kicker">Lista de módulos</span>
+                    <button className="btn btn-ghost btn-xs btn-circle" onClick={() => setMenuModulos(false)} aria-label="Cerrar lista de módulos">
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <div className="grid gap-1 sm:grid-cols-2">
+                    {NAV.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          className={`btn btn-ghost btn-sm justify-start gap-2.5 text-sm lg:btn-md ${page === item.id ? 'nav-active text-primary' : ''}`}
+                          onClick={() => {
+                            setPage(item.id);
+                            setMenuModulos(false);
+                          }}
+                        >
+                          <Icon size={16} strokeWidth={2.2} />
+                          <span className="truncate">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>

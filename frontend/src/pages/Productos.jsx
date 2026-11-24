@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Pencil, Plus, SlidersHorizontal, Search, ArrowUp, ArrowDown,
+  Pencil, Plus, SlidersHorizontal, Search,
   Archive, RotateCcw, Minus, GripVertical
 } from 'lucide-react';
 import { api, num, estadoStock } from '../api.js';
@@ -13,6 +13,8 @@ export default function Productos({ productos, refresh, notify, usuario }) {
   const [buscar, setBuscar] = useState('');
   const [verInactivos, setVerInactivos] = useState(false);
   const [confirmar, setConfirmar] = useState(null);
+  const [arrastrando, setArrastrando] = useState(null);
+  const [sobre, setSobre] = useState(null);
 
   const guardar = async (event) => {
     event.preventDefault();
@@ -48,12 +50,24 @@ export default function Productos({ productos, refresh, notify, usuario }) {
     }
   };
 
-  const mover = async (id, direccion) => {
+  const iniciarArrastre = (event, id) => {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(id));
+    setArrastrando(id);
+  };
+
+  const soltar = async (destinoId) => {
+    const origenId = Number(arrastrando);
+    const destino = Number(destinoId);
+    setArrastrando(null);
+    setSobre(null);
+    if (!origenId || origenId === destino) return;
     const ids = productos.map((p) => p.id);
-    const indice = ids.indexOf(id);
-    const destino = indice + direccion;
-    if (destino < 0 || destino >= ids.length) return;
-    [ids[indice], ids[destino]] = [ids[destino], ids[indice]];
+    const desde = ids.indexOf(origenId);
+    const hasta = ids.indexOf(destino);
+    if (desde < 0 || hasta < 0) return;
+    const [movido] = ids.splice(desde, 1);
+    ids.splice(hasta, 0, movido);
     try {
       await api.put('/catalogos/productos/reordenar', { ids });
       refresh();
@@ -123,7 +137,7 @@ export default function Productos({ productos, refresh, notify, usuario }) {
           <div className="card-title flex flex-wrap items-center justify-between gap-3 text-base">
             <div>
               <span>Productos terminados</span>
-              <div className="text-xs font-normal opacity-60">Edita precio, nombre y mínimo en la tabla. Usa las flechas para cambiar el orden.</div>
+              <div className="text-xs font-normal opacity-60">Edita precio, nombre y mínimo en la tabla. Arrastra el tirador para cambiar el orden.</div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <label className="input input-bordered input-sm flex w-52 items-center gap-2">
@@ -150,15 +164,26 @@ export default function Productos({ productos, refresh, notify, usuario }) {
               <tbody>
                 {filtrados.map((p) => {
                   const estado = estadoStock(p);
-                  const indice = productos.findIndex((x) => x.id === p.id);
                   return (
-                    <tr key={p.id} className={!p.activo ? 'opacity-50' : ''}>
+                    <tr
+                      key={p.id}
+                      className={`${!p.activo ? 'opacity-50' : ''} ${arrastrando === p.id ? 'opacity-40' : ''} ${sobre === p.id && arrastrando !== p.id ? 'bg-primary/10 outline outline-1 outline-primary/40' : ''}`}
+                      onDragOver={(event) => { event.preventDefault(); setSobre(p.id); }}
+                      onDragLeave={() => setSobre((actual) => actual === p.id ? null : actual)}
+                      onDrop={(event) => { event.preventDefault(); soltar(p.id); }}
+                    >
                       <td>
-                        <div className="flex items-center gap-1">
-                          <GripVertical size={14} className="opacity-40" />
-                          <button className="btn btn-ghost btn-xs btn-square" disabled={indice === 0} onClick={() => mover(p.id, -1)}><ArrowUp size={13} /></button>
-                          <button className="btn btn-ghost btn-xs btn-square" disabled={indice === productos.length - 1} onClick={() => mover(p.id, 1)}><ArrowDown size={13} /></button>
-                        </div>
+                        <button
+                          type="button"
+                          draggable
+                          className="btn btn-ghost btn-xs btn-square cursor-grab active:cursor-grabbing"
+                          title="Arrastra para cambiar el orden"
+                          aria-label={`Arrastrar ${p.nombre} para reordenar`}
+                          onDragStart={(event) => iniciarArrastre(event, p.id)}
+                          onDragEnd={() => { setArrastrando(null); setSobre(null); }}
+                        >
+                          <GripVertical size={16} />
+                        </button>
                       </td>
                       <td className="font-mono text-xs">{p.codigo}</td>
                       <td className="min-w-40">{campo(p, 'nombre', p.nombre)}</td>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard, Package, Boxes, ClipboardList, Factory,
   ShoppingCart, ListChecks, History, Palette, UserRound, LogOut, Radio, UsersRound,
-  Menu, X
+  Menu, X, LogIn
 } from 'lucide-react';
 import { api } from './api.js';
 import Dashboard from './pages/Dashboard.jsx';
@@ -36,6 +36,7 @@ export default function App() {
   const [insumos, setInsumos] = useState([]);
   const [recetas, setRecetas] = useState([]);
   const [clientes, setClientes] = useState([]);
+  const [accesos, setAccesos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [autenticando, setAutenticando] = useState(true);
   const [toast, setToast] = useState(null);
@@ -58,6 +59,7 @@ export default function App() {
     setInsumos(i);
     setRecetas(r);
     setClientes(c);
+    api.get('/accesos').then(setAccesos).catch(() => setAccesos(null));
   }, []);
 
   const notify = useCallback((mensaje, tipo = 'ok') => {
@@ -107,7 +109,7 @@ export default function App() {
 
   if (!usuario) return <Login onOk={setUsuario} />;
 
-  const shared = { productos, insumos, recetas, clientes, refresh, notify, usuario };
+  const shared = { productos, insumos, recetas, clientes, accesos, refresh, notify, usuario };
   const titulo = NAV.find((n) => n.id === page)?.label || 'Resumen';
 
   return (
@@ -186,6 +188,7 @@ export default function App() {
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <h1 className="text-xl font-extrabold tracking-tight lg:text-2xl">{titulo}</h1>
                 <span className="badge badge-outline badge-sm hidden gap-1.5 self-end sm:inline-flex"><Radio size={13} /> Control de mercadería</span>
+                <span className="badge badge-primary badge-sm hidden gap-1.5 self-end sm:inline-flex"><LogIn size={13} /> {accesos?.hoy ?? 0} ingresos hoy</span>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">

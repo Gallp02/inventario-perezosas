@@ -106,18 +106,54 @@ app.get('/api/me', (req, res) => res.json({ usuario: req.usuario }));
 
 app.get('/api/accesos', async (req, res, next) => {
   try {
-    const [total] = await pool.query('SELECT COUNT(*) AS total FROM login_logs');
+    const [[resumen]] = await pool.query(
+      `SELECT COUNT(*) AS total,
+              COALESCE(SUM(fecha >= CURDATE() AND fecha < CURDATE() + INTERVAL 1 DAY), 0) AS hoy,
+              COALESCE(SUM(fecha >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                          AND fecha < CURDATE() + INTERVAL 1 DAY), 0) AS ultimos7Dias,
+              COUNT(DISTINCT usuario) AS unicos,
+              MAX(fecha) AS ultimo
+       FROM login_logs`
+    );
     const [porUsuario] = await pool.query(
       `SELECT usuario, COUNT(*) AS cantidad, MAX(fecha) AS ultimo
        FROM login_logs GROUP BY usuario ORDER BY cantidad DESC`
     );
+    const [[fechaServidor]] = await pool.query("SELECT DATE_FORMAT(CURDATE(), '%Y-%m-%d') AS hoy");
+    const hoyTexto = fechaServidor.hoy instanceof Date
+      ? fechaServidor.hoy.toISOString().slice(0, 10)
+      : String(fechaServidor.hoy).slice(0, 10);
+    const base = new Date(`${hoyTexto}T12:00:00Z`);
+    const claves = Array.from({ length: 7 }, (_, indice) => {
+      const dia = new Date(base);
+      dia.setUTCDate(dia.getUTCDate() - (6 - indice));
+      return dia.toISOString().slice(0, 10);
+    });
+    const fin = new Date(base);
+    fin.setUTCDate(fin.getUTCDate() + 1);
+    const [filasDia] = await pool.query(
+      `SELECT DATE_FORMAT(fecha, '%Y-%m-%d') AS dia, COUNT(*) AS cantidad
+       FROM login_logs
+       WHERE fecha >= ? AND fecha < ?
+       GROUP BY dia`,
+      [`${claves[0]} 00:00:00`, `${fin.toISOString().slice(0, 10)} 00:00:00`]
+    );
+    const porDia = claves.map((clave) => ({
+      dia: clave,
+      cantidad: Number(filasDia.find((fila) => fila.dia === clave)?.cantidad || 0)
+    }));
     const [recientes] = await pool.query(
       `SELECT id, usuario, ip, fecha FROM login_logs
        ORDER BY fecha DESC, id DESC LIMIT 10`
     );
     res.json({
-      total: Number(total[0].total),
+      total: Number(resumen.total),
+      hoy: Number(resumen.hoy),
+      ultimos7Dias: Number(resumen.ultimos7Dias),
+      unicos: Number(resumen.unicos),
+      ultimo: resumen.ultimo,
       porUsuario,
+      porDia,
       recientes
     });
   } catch (error) {

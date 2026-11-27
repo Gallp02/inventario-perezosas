@@ -11,16 +11,12 @@ const badgeTipo = {
   ajuste: 'warning', compra: 'success', consumo_fabricacion: 'info'
 };
 
-export default function Dashboard({ refresh, notify, ir }) {
+export default function Dashboard({ refresh, notify, ir, accesos }) {
   const [data, setData] = useState(null);
-  const [accesos, setAccesos] = useState(null);
 
   useEffect(() => {
-    Promise.all([api.get('/dashboard'), api.get('/accesos')])
-      .then(([resumen, ingresos]) => {
-        setData(resumen);
-        setAccesos(ingresos);
-      })
+    api.get('/dashboard')
+      .then(setData)
       .catch((error) => notify(error.message, 'error'));
   }, [refresh, notify]);
 
@@ -29,6 +25,11 @@ export default function Dashboard({ refresh, notify, ir }) {
   }
 
   const alertas = data.productos.stockBajo + data.insumos.stockBajo;
+  const dias = (accesos?.porDia || []).map((item) => ({
+    clave: item.dia,
+    etiqueta: new Date(`${item.dia}T12:00:00`).toLocaleDateString('es-PE', { weekday: 'short' }),
+    cantidad: Number(item.cantidad)
+  }));
 
   return (
     <>
@@ -96,13 +97,27 @@ export default function Dashboard({ refresh, notify, ir }) {
           <div className="stat-figure text-warning"><LogIn size={26} /></div>
           <div className="stat-title">Ingresos al sistema</div>
           <div className="stat-value text-3xl">{accesos?.total ?? 0}</div>
-          <div className="stat-desc">{accesos?.recientes?.[0] ? `Último: ${fecha(accesos.recientes[0].fecha)}` : 'Sin registros'}</div>
+          <div className="stat-desc">Hoy {accesos?.hoy ?? 0} · 7 días {accesos?.ultimos7Dias ?? 0} · Último {accesos?.ultimo ? fecha(accesos.ultimo) : '—'}</div>
         </div>
         <div className={`stat ${alertas ? 'bg-error/5' : ''}`}>
           <div className="stat-figure text-error"><CircleAlert size={26} /></div>
           <div className="stat-title">Alertas de stock</div>
           <div className={`stat-value text-3xl ${alertas ? 'text-error' : ''}`}>{alertas}</div>
           <div className="stat-desc">Por reponer</div>
+        </div>
+      </div>
+
+      <div className="card border border-base-200 bg-base-100 shadow-sm">
+        <div className="card-body gap-3 p-5">
+          <div className="card-title text-base">Frecuencia de ingreso · últimos 7 días</div>
+          <div className="flex flex-wrap gap-2">
+            {dias.map((dia) => (
+              <span key={dia.clave} className={`badge gap-2 ${dia.cantidad ? 'badge-primary' : 'badge-ghost'}`}>
+                <span className="uppercase opacity-60">{dia.etiqueta}</span>
+                <strong>{dia.cantidad}</strong>
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
